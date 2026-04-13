@@ -1,0 +1,5 @@
+X100
+Jaka pozycje nalezy stosowac klasyfikujac we Wspolnej Taryfie Celnej wyrobu skladajacego sie z dwoch lub wiecej materialow o ile mozna ustalic, iz jeden z nich dominuje pod jakims wzgledem:
+Pozycje skladnika nadajacego zasadniczy charakter wyrobowi,
+Pozycje skladnika o najwiekszej wartosci,
+Pozycje skladnika ostatniego w kolejnosci numerycznej,

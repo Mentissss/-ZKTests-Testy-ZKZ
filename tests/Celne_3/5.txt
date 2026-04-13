@@ -1,0 +1,5 @@
+X001
+AES jest to system wykorzystywany przy realizacji
+procedury dopuszczenia do obrotu 
+procedury tranzytu
+procedury wywozu

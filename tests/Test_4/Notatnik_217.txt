@@ -1,0 +1,5 @@
+X100
+W jaki sposob organ celny ustala wartosc celna w przypadku, gdy wartosc transakcyjna nie moze byc przyjeta za wartosc celna ?
+stosujac w kolejnosci metody wymienione w unijnym kodeksie celnym,
+stosujac dowolnie wybrana metode, okreslona w unijnym kodeksie celnym,
+stosujac zawsze w pierwszej kolejnosci metode wskazana przez zglaszajacego.

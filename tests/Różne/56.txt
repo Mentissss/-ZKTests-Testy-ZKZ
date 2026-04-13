@@ -1,0 +1,5 @@
+X100
+Podstawowym za³o¿eniem w przypadku obliczenia kwoty podatku od towarów i us³ug od importu towarów, co do zasady, jest:
+a) obowi¹zek samonaliczenia podatku w zg³oszeniu celnym,
+b) obowi¹zek naliczania podatku przez organ celny w decyzji,
+c) samonaliczanie lub decyzja organu w zale¿noœci od zastosowanej procedury celnej.

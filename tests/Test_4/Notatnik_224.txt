@@ -1,0 +1,5 @@
+X001
+W celu ustalenia wartosci celnej towaru do wartosci transakcyjnej dodaje sie:
+wszelkiego rodzaju prowizje zwiazane z transakcja zakupu,
+prowizje i koszty posrednictwa, za wyjatkiem prowizji od sprzedazy
+prowizje i koszty posrednictwa, za wyjatkiem prowizji od zakupu.

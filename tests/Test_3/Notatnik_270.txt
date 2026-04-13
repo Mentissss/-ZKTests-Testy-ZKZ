@@ -1,0 +1,5 @@
+X100
+Jaka informacja jest niezbedna do okreslenia wartosci celnej towaru metoda wartosci transakcyjnej
+a. cena faktycznie zaplacona lub nalezna za towar,
+b. cena rynkowa towarow identycznych,
+c. cena rynkowa towarow podobnych.

@@ -1,0 +1,5 @@
+X100
+Na gruncie kodeksu karnego skarbowego, niedopuszczalne jest udzielenie zezwolenie na DPO jezeli:
+a) wina sprawcy i okolicznosci popelnienia przestepstwa skarbowego lub wykroczenia skarbowego budza watpliwosci
+b) przestepstwo skarbowe zagrozone jest kara grzywny w stawkach dziennych
+c) podejrzany o popelnienie wykroczenia skarbowego odmowil zlozenia wyjasnien

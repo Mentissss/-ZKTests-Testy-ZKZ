@@ -1,0 +1,5 @@
+X001
+Podatnicy podatku dochodowego od osob fizycznych powadza ksiegi rachunkowe:
+a) za rok kalendarzowy lub inny okres trwajacy 12 kolejnych pelnych miesiecy kalendarzowych, stosowanych rowniez do celow podatkowych,
+b) za rok obrotowy pokrywajacy sie z rokiem kalendarzowym.
+c) zawsze za rok kalendarzowy.

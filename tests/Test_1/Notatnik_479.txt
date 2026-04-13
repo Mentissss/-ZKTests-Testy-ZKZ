@@ -1,0 +1,5 @@
+X001
+Termin waznosci pozwolenia na procedure specjalna oznacza:
+a) termin do zakonczenia procedury
+b) termin na rozliczenie procedury
+c) termin, w ktorym towary moga byc obejmowane procedura 

@@ -1,0 +1,5 @@
+X001
+Co jest podstawa do wyliczenia stawek celnych:
+a. przepisy krajowe
+b. rozporzadzenie Rady Unii Europejskiej w sprawie zwolnien celnych
+c. wspolna taryfa celna

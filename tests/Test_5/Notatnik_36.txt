@@ -1,0 +1,5 @@
+X001
+Jezeli osoba u ktorej dokonano zatrzymania rzeczy oswiadczy ze wydane pismo lub inny dokument ma charakter osobisty, funkcjonariusz przeprowadzajac czynnosci:
+a) zapoznaje sie z trescia pisma lub innego dokumentu i przekazuje je prokuratorowi okregowemu
+b) przekazuje pismo lub inny dokument bez jego odczytania prokuratorowi rejonowemu w opakowaniu
+c) przekazuje niezwlocznie pismo lub inny dokument bez jego odczytania prokuratorowi w opieczetowanym opakowaniu

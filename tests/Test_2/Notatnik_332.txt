@@ -1,0 +1,5 @@
+X010
+Po zakonczeniu postepowania dowodowego w toku prowadzonego postepowania podatkowego organ podatkowy obowiazany jest, przed wydaniem decyzji, wyznaczyc stronie termin do wypowiedzenia sie w tej sprawie. Termin ten:
+a. uzalezniony jest ilosci materialu dowodowego w sprawie i wynosi maksymalnie 21 dni
+b. wynosi 7 dni
+c. wynosi zawsze 14 dni

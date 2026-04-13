@@ -1,0 +1,5 @@
+X010
+W przypadku, gdy wartosc celna nie moze byc ustalona na podstawie wartosci transakcyjnej ustala sie ja pozostalymi metodami:
+ktore nalezy stosowac w dowolnej kolejnosci z korzyscia dla importera,
+ktore nalezy stosowac w kolejnosci dopuszczonej przepisami prawa,
+w zaleznosci od wniosku importera.

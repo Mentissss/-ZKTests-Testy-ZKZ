@@ -1,0 +1,5 @@
+X010
+Jakich kosztow nie wlicza sie do wartosci celnej ?
+kosztow posrednictwa i prowizji od sprzedazy,
+kosztow transportu przywozonych towarow  po ich wprowadzeniu na obszar celny Unii Europejskiej,
+kosztow zwiazanych z transportem towarow, poniesionych do miejsca wprowadzenia na obszar celny Unii.

@@ -1,0 +1,5 @@
+X010
+Deklaracja zwyklego eksportera na fakturze, dla towaru przywiezionego z Izraela, moze byc uznana w celu zastosowania preferencji, jezeli wartosc przesylki nie przekracza:
+9000 EUR
+6000 EUR
+bez wzgledu na wartosc

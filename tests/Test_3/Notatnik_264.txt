@@ -1,0 +1,5 @@
+X010
+System Zharmonizowany jest wykazem towarow
+na ktorym opiera sie wylacznie taryfa celna UE,
+opisanym przez 6 cyfrowy kod towaru,
+gdzie kazdy towar opisany jest 8 cyframi

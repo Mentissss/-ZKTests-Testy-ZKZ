@@ -1,0 +1,5 @@
+X100
+Rewizja celna czesci towarow :
+a. odnosi sie do calosci towarow objetych danym zgloszeniem celnym
+b. odnosi sie do calosci towarow objetych zgloszeniem celnym, z wylaczeniem towarow podlegajacych wspolnej polityce rolnej
+c. odnosi sie jedynie do tej partii towarow

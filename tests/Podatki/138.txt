@@ -1,0 +1,5 @@
+X001
+Pracownik organu podatkowego podlega wy³¹czeniu od udzia³u w postêpowaniu, je¿eli stron¹ postêpowania jest::
+osoba zamieszkuj¹ca w bezpoœrednim s¹siedztwie pracownika organu.
+osoba zatrudniona w organie podatkowym wy¿szego stopnia.
+teœciowa pracownika.

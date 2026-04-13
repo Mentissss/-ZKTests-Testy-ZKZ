@@ -1,0 +1,5 @@
+X001
+W jakim przypadku bezwzglednie stosujemy zastepcze metody ustalenia wartosci celnej:
+w przypadku powiazania stron transakcji sprzedazy,
+w przypadku importu tekstyliow z krajow dalekiego wschodu
+w przypadku zakwestionowania wartosci transakcyjnej

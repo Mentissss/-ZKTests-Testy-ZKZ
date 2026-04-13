@@ -1,0 +1,5 @@
+X001
+Zamkniecia urzedowe moga byc nakladane i zdejmowane przez :
+a. tylko naczelnika urzedu celno skarbowego
+b. naczelnika urzedu celno skarbowego lub urzedu skarbowego
+c. naczelnika urzedu celno skarbowego oraz upowaznione podmioty AEO

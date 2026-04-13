@@ -1,0 +1,5 @@
+X100
+W rozumieniu przepisow ustawy o podatku akcyzowym zarejestrowany wysylajacy to podmiot, ktoremu wydano zezwolenie na:
+a. wysylanie importowanych wyrobow akcyzowych z miejsca importu z zastosowaniem procedury zawieszenia poboru akcyzy, w ramach prowadzonej dzialalnosci gospodarczej.
+b. nabywanie wyrobow akcyzowych wyslanych z zastosowaniem procedury zawieszenia poboru akcyzy, w ramach prowadzonej dzialalnosci gospodarczej.
+c. dostarczanie wyrobow akcyzowych zwolnionych od akcyzy ze wzgledu na przeznaczenie.

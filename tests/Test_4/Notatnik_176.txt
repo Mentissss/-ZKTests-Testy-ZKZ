@@ -1,0 +1,5 @@
+X001
+Obowiazek podatkowy w imporcie towarow w podatku od towarow i uslug powstaje, co do zasady:
+a) z chwila wydania towaru,
+b) z chwila przywozu towarow z terytorium panstwa trzeciego na terytorium kraju,
+c) z chwila powstania dlugu celnego.

@@ -1,0 +1,5 @@
+X001
+Powierzenie naczelnikowi UCS przeprowadzenia sledztwa w calosci lub okreslonym zakresie albo dokonania poszczegolnych czynnosci sledztwa nie moze obejmowac czynnosci zwiazanych z:
+a) przeszukaniem
+b) tymczasowym zajeciem mienia ruchomego
+c) przedstawieniem zarzutow

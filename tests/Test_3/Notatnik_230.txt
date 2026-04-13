@@ -1,0 +1,5 @@
+X100
+Dowodem potwierdzajacym bezposredni transport towaru moze byc:
+Jeden dokument CMR obejmujacy cala trase towaru.
+Oswiadczenie importera
+Dwa dokumenty przewozowe obejmujace cala trase przewozu.

@@ -1,0 +1,5 @@
+X100
+Jezeli wlasciwy naczelnik urzedu celno-skarbowego stwierdzi, ze w zgloszeniu celnym kwota akcyzy z tytulu importu wyrobow akcyzowych zostala wykazana nieprawidlowo, wydaje:
+a. decyzje okreslajaca kwote akcyzy w naleznej wysokosci.
+b. postanowienie w ktorym wskazuje kwote akcyzy w naleznej wysokosci.
+c. nakaz dokonania korekty zgloszenia.

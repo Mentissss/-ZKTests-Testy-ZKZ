@@ -1,0 +1,5 @@
+X100
+Co to jest praca kierowcy w godzinach nocnych:
+a. okres co najmniej 4 godzin pracy pomiêdzy 00:00 a 7;00
+b. okres co najmniej 7 godzin pracy pomiêdzy 00:00 a 7;00
+c. praca od zmierzchu do œwitu

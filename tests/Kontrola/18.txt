@@ -1,0 +1,5 @@
+X100
+Towary nieunijne czasowo sk³adowane w magazynie czasowego sk³adowania musz¹ zostaæ objête procedur¹ celn¹ lub powrotnie wywiezione w terminie :
+a. do 90 dni od dnia ich wprowadzenia do magazynu
+b. do 30 dni od dnia ich wprowadzenia do magazynu
+c. do 40 dni od dnia ich wprowadzenia do magazynu

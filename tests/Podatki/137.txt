@@ -1,0 +1,5 @@
+X001
+W toku kontroli podatkowej pe³nomocnikiem kontrolowanego mo¿e byæ:
+osoba prawna,
+radca prawny zatrudniony w organie podatkowym, który prowadzi kontrolê podatkow¹,
+osoba fizyczna posiadaj¹ca pe³n¹ zdolnoœæ do czynnoœci prawnych.

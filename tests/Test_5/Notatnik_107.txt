@@ -1,0 +1,5 @@
+X010
+Data wszczecia kontroli celno skarbowej co do zasady jest dzien :
+a. wystawienia upowaznienia
+b. doreczenia kontrolowanemu upowaznienia do przeprowadzenia kontroli celno skarbowej
+c. okazania legitymacji sluzbowej funkcjonariusza

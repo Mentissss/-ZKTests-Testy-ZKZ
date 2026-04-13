@@ -1,0 +1,5 @@
+X001
+Czy wystepowanie powiazania miedzy stronami transakcji ma wplyw na sposob wyliczania wartosci celnej?
+W przypadku wystepowania powiazania, wartosc zawsze ustalana jest metodami zastepczymi,
+Nie ma zadnego wplywu,
+Moze miec wplyw,

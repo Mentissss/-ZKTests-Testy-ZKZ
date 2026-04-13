@@ -1,0 +1,5 @@
+X010
+W celu ustalenia wartosci transakcyjnej towaru do ceny faktycznie zaplaconej lub naleznej dodajemy:
+Koszty wynajecia pelnomocnika
+Prowizje i koszty posrednictwa, za wyjatkiem prowizji od zakupu
+Koszty opracowania strategii dzialania firmy

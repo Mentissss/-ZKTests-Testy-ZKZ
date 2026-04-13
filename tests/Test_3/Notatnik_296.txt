@@ -1,0 +1,5 @@
+X100
+W sytuacji gdy zgodnie z przepisami prawa celnego powiadomienie dluznika o wysokosci dlugu celnego nie moze nastapic z uwagi na przedawnienie, a istnieje podstawa do obliczenia lub zweryfikowania naleznosci podatkowych, wlasciwy:
+a. naczelnik urzedu celno-skarbowego moze okreslic elementy kalkulacyjne wedlug zasad okreslonych w przepisach prawa celnego na potrzeby prawidlowego okreslenia kwoty akcyzy z tytulu importu.
+b. dla podatnika naczelnik urzedu skarbowego w zakresie akcyzy wydaje decyzje okreslajaca kwote akcyzy z tytulu importu.
+c. dla podatnika dyrektor izby administracji skarbowej wydaje postanowienie w ktorym wskazuje kwote naleznej akcyzy z tytulu importu.

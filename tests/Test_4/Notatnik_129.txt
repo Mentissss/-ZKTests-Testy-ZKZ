@@ -1,0 +1,5 @@
+X001
+Pierwsza i zarazem najwazniejsza metoda ustalania wartosci celnej jest
+a) metoda wartosci transakcyjnej towarow identycznych,
+b) metoda ceny jednostkowej,
+c) metoda wartosci transakcyjnej.

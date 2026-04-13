@@ -1,0 +1,5 @@
+X100
+Wykroczenie umyslne zachodzi wtedy:
+a) gdy sprawca ma zamiar popelnienia czynu zabronionego, to jest chce go popelnic
+b) nie przewidujac mozliwosc jego popelnienia na to sie godzi
+c) jezeli sprawca nie majac zamiaru jego popelnienia, popelnia je jednak na skutek niezachowania ostroznosci wymaganej w danych okolicznosciach,

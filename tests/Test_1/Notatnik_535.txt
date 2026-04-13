@@ -1,0 +1,5 @@
+X001
+Za termin dokonania zaplaty dlugu celnego w formie bezgotowkowej uwaza sie:
+a. date umieszczona w dowodzie wplaty
+b. dzien wplywu srodkow do organu
+c. dzien obciazenia rachunku bankowego dluznika

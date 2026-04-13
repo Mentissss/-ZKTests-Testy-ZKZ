@@ -1,0 +1,5 @@
+X010
+Czynnosci audytowe przeprowadza sie w celu:
+a) sprawdzenia rzetelnosci transakcji u kontrahenta,
+b) ustalenia, czy podmiot wystepujacy z wnioskiem o wydanie pozwolenia, wynikajacego z przepisow unijnego kodeksu celnego spelnia okreslone kryteria,
+c) sprawdzenia prawidlowosci rozliczen zobowiazan podatkowych.

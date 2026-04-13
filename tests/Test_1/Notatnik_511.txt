@@ -1,0 +1,5 @@
+X001
+W przypadku usuniecia towaru spod dozoru celnego dlug celny powstaje z chwila:
+Zabezpieczenie kwoty dlugu celnego
+Zwolnienie z naleznosci celnych
+Usuniecia towaru pod dozoru celnego

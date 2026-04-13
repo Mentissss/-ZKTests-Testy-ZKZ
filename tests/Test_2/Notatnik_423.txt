@@ -1,0 +1,5 @@
+X100
+Nomenklatura taryfowa zbudowana jest z:
+Sekcji, dzialow, poddzialow, pozycji i podpozycji
+Wykazu alfabetycznego wszystkich towarow
+Wylacznie z sekcji i dzialow

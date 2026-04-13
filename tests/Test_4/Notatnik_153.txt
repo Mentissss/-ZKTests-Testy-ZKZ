@@ -1,0 +1,5 @@
+X100
+Decyzja wydana przez organ podatkowy wiaze ten organ:
+a) od chwili doreczenia stronie, a gdy dziala przez pelnomocnika, to od chwili doreczenia pelnomocnikowi,
+b) od chwili wydania,
+c) nie wiaze organ tylko podatnika.

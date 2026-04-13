@@ -1,0 +1,5 @@
+X100
+W sytuacji, gdy zlozony wniosek nie spelnia wymogow okreslonych w przepisach organ celny:
+1. wzywa wnioskodawce do uzupelnienia brakow,
+2. pozostawia wniosek bez rozpatrzenia,
+3. zwraca wniosek wraz z pisemnym uzasadnieniem podajacym przyczyny jego nie przyjecia.

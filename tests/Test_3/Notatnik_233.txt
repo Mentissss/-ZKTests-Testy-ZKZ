@@ -1,0 +1,5 @@
+X100
+,,Deklaracja na fakturze" dotyczaca pochodzenia towarow moze byc sporzadzona :
+na fakturze, dowodzie dostawy, lub jakimkolwiek innym dokumencie handlowym
+wylacznie na fakturze
+wylacznie na fakturze lub swiadectwie pochodzenia

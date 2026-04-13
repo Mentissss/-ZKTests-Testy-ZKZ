@@ -1,0 +1,5 @@
+X010
+Status celny to :
+a. wykonywanie kontroli celnej w ramach dozoru celnego
+b. okreslenie towaru jako unijny lub nieunijny
+c. ustalenie zgodnosci przywozu i wywozu towaru z przepisami prawa celnego

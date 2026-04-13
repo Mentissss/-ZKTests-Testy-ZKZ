@@ -1,0 +1,5 @@
+X010
+Towary w magazynach czasowego sk³adowania mo¿na przechowywaæ:
+a) bezterminowo do czasu objêcia towarów procedur¹ celna,
+b) 90 dni od daty z³o¿enia w magazynie bez mo¿liwoœci przed³u¿enia terminu,
+c) 45 dni od daty z³o¿enia w magazynie z mo¿liwoœci¹ jego przed³u¿enia.

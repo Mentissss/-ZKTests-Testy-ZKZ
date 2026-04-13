@@ -1,0 +1,5 @@
+X010
+Zgodnie z przepisami ustawy o podatku dochodowym od osob prawnych, koszty uzyskania przychodow poniesione w walutach obcych przelicza sie na zlote wedlug kursu sredniego ogloszonego przez Narodowy Bank Polski z:
+a) dnia poprzedzajacego dzien poniesienia kosztu,
+b) ostatniego dnia roboczego poprzedzajacego dzien poniesienia kosztu,
+c) dnia poniesienia kosztu.

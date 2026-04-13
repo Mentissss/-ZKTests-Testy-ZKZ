@@ -1,0 +1,5 @@
+X010
+Obowiazek podatkowy w podatku od spadkow i darowizn, jezeli nabycie nastepuje w czesciach, powstaje:
+a) z chwila nabycia pierwszej czesci,
+b) z chwila nabycia poszczegolnych czesci,
+c) z chwila nabycia ostatniej czesci.

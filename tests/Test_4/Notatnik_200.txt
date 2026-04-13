@@ -1,0 +1,5 @@
+X001
+Naczelnik urzedu celno-skarbowego moze wykonywac kontrole celno-skarbowa:
+a) wylacznie na obszarze wojewodztwa, na terenie ktorego ma swoja siedzibe,
+b) wylacznie na obszarach wojewodztw wskazanych przez Szefa KAS,
+c) na calym terytorium Rzeczypospolitej Polskiej.

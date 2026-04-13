@@ -1,0 +1,5 @@
+X100
+W swietle ustawy o podatku akcyzowym, elektroniczny administracyjny dokument e-AD, to dokument na podstawie ktorego przemieszcza sie:
+a. wyroby akcyzowe z zastosowaniem procedury zawieszenia poboru akcyzy.
+b. wyroby akcyzowe zwolnione od akcyzy.
+c. wyroby akcyzowe z zaplacona akcyza.

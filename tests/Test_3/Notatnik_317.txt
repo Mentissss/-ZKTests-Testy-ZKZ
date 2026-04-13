@@ -1,0 +1,5 @@
+X100
+Sklad podatkowy, w rozumieniu ustawy o podatku akcyzowym, to miejsce, w ktorym:
+a. okreslone wyroby akcyzowe sa: produkowane, magazynowane, przeladowywane lub do ktorego wyroby te sa wprowadzane, lub z ktorego sa wyprowadzane - z zastosowaniem procedury zawieszenia poboru akcyzy; w przypadku skladu podatkowego znajdujacego sie na terytorium kraju miejsce to jest okreslone w zezwoleniu wydanym przez wlasciwego naczelnika urzedu skarbowego.
+b. moga byc skladowane dowolne towary znajdujace sie w procedurze tranzytu w rozumieniu przepisow prawa celnego.
+c. moga znajdowac sie importowane towary w momencie dopuszczenia ich do obrotu w rozumieniu przepisow prawa celnego, tzw. miejsce importu.

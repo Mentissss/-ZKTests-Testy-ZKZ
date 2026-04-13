@@ -1,0 +1,5 @@
+X001
+Jesli WIT zostal wydany na podstawie nieprawdziwych dokumentow lub niekompletnych danych
+a) moze byc stosowany przez okres 6 mc
+b) traci waznosc z dniem stwierdzenia nieprawidlowosci
+c) zostaje uniewazniony

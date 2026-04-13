@@ -1,0 +1,5 @@
+X001
+Czy sam zglaszajacy moze okreslic kwote naleznosci celnych i podatkowych do zaplaty?
+a) nie - sa to kompetencje organow celnych,
+b) tak - tylko w przypadku gdy dokonuje zgloszenia w formie pisemnej,
+c) tak - w zgloszeniu celnym.

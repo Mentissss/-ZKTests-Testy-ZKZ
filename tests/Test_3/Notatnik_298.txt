@@ -1,0 +1,5 @@
+X100
+Obowiazek podatkowy z tytulu importu wyrobow akcyzowych powstaje:
+a. z dniem powstania dlugu celnego w rozumieniu przepisow prawa celnego.
+b. w momencie wprowadzenia wyrobow do magazynu odbiorcy na terytorium kraju.
+c. z chwila wystawienia faktury przez sprzedawce z kraju trzeciego.

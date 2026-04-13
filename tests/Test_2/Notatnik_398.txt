@@ -1,0 +1,5 @@
+X001
+W celu ustalenia, czy istnieja podstawy do wystapienia z wnioskiem o ukaranie oraz zebrania danych niezbednych do sporzadzenia takiego wniosku, funkcjonariusz:
+a) moze przeprowadzic czynnosci wyjasniajace,
+b) przeprowadza czynnosci sprawdzajace,
+c) z urzedu przeprowadza czynnosci wyjasniajace.

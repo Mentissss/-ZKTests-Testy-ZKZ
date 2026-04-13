@@ -1,0 +1,5 @@
+X010
+Ryzyko :
+a . ilosc podroznych przekraczajacych granice w ostatnim kwartale
+b. oznacza prawdopodobienstwo i skutki wystapienia naruszenia przepisow prawa
+c. wskaznik skutecznosci kontroli celno skarbowych

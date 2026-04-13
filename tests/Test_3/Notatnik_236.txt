@@ -1,0 +1,5 @@
+X001
+Niepreferencyjne swiadectwo pochodzenia winno zawierac:
+dane odbiorcy towaru
+numer faktury
+wszystkie dane niezbedne do ustalenia tozsamosci towaru

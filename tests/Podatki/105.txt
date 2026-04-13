@@ -1,0 +1,5 @@
+X100
+5.	W sytuacji gdy zgodnie z przepisami prawa celnego powiadomienie d³u¿nika o wysokoœci d³ugu celnego nie mo¿e nast¹piæ z uwagi na przedawnienie, a istnieje podstawa do obliczenia lub zweryfikowania nale¿noœci podatkowych, w³aœciwy:
+a.	naczelnik urzêdu celno-skarbowego mo¿e okreœliæ elementy kalkulacyjne wed³ug zasad okreœlonych w przepisach prawa celnego na potrzeby prawid³owego okreœlenia kwoty akcyzy z tytu³u importu.
+b.	dla podatnika naczelnik urzêdu skarbowego w zakresie akcyzy wydaje decyzjê okreœlaj¹c¹ kwotê akcyzy z tytu³u importu.
+c.	dla podatnika dyrektor izby administracji skarbowej wydaje postanowienie w którym wskazuje kwotê nale¿nej akcyzy z tytu³u importu.

@@ -1,0 +1,5 @@
+X001
+79. Jaki organ wydaje decyzje o udzieleniu patentu:
+a) minister wlasciwy do spraw finansow,
+b) minister wlasciwy do spraw gospodarki,
+c) Urzad Patentowy.

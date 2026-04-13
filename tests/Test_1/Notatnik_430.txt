@@ -1,0 +1,5 @@
+X010
+Krajowy Rejestr Sadowy sklada sie z:
+Rejestru dluznikow podatkowych
+Rejestru przedsiebiorcow
+Rejestru spolek

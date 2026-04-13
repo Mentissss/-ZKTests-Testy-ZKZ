@@ -1,0 +1,5 @@
+X001
+Czy sam zg³aszaj¹cy mo¿e okreœliæ kwotê nale¿noœci celnych i podatkowych do zap³aty?
+a) nie – s¹ to kompetencje organów celnych,
+b) tak – tylko w przypadku gdy dokonuje zg³oszenia w formie pisemnej,
+c) tak – w zg³oszeniu celnym.

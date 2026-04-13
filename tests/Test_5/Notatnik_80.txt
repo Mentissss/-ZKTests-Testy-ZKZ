@@ -1,0 +1,5 @@
+X001
+W mysl ustawy Prawo celne, dokumenty i informacje majace znaczenie dla wykonywanych kontroli celnych nalezy przechowywac przez okres:
+a. 3 lat
+b. 1 roku
+c. 5 lat

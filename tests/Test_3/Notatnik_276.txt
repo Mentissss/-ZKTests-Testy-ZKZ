@@ -1,0 +1,5 @@
+X010
+Tytuly sekcji i dzialow w Nomenklaturze Scalonej i klasyfikacji towarowej maja znaczenie:
+a. nie maja zadnego znaczenia przy klasyfikacji taryfowej
+b. orientacyjne - pozwalajace na wstepne przyporzadkowanie do danego dzialu lub sekcji
+c. prawne - pozwalajace na dokladna klasyfikacje towaru do danej pozycji

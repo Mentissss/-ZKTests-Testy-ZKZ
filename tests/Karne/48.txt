@@ -1,0 +1,5 @@
+X010
+Na gruncie Kodeksu karnego skarbowego, s¹d mo¿e udzieliæ zezwolenia na dobrowolne poddanie siê odpowiedzialnoœci, je¿eli:
+a. spó³ka akcyjna, w której jest zatrudniony sprawca, uiœci³a kwotê odpowiadaj¹c¹ co najmniej najni¿szej karze grzywny gro¿¹cej za dany czyn zabroniony,
+b. sprawca uiœci³ kwotê odpowiadaj¹c¹ co najmniej najni¿szej karze grzywny gro¿¹cej za dany czyn zabroniony,
+c. brat sprawcy uiœci³ kwotê odpowiadaj¹c¹ co najmniej najni¿szej karze grzywny gro¿¹cej za dany czyn zabroniony.

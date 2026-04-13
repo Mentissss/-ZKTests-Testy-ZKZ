@@ -1,0 +1,5 @@
+X010
+Warunkiem zastosowania preferencyjnej stawki 0% w eksporcie jest posiadanie przez przedsiebiorce, przed uplywem terminu zlozenia deklaracji VAT za dany okres rozliczeniowy:
+a) wylacznie dokumentu w formie elektronicznej, pochodzacego z systemu teleinformatycznego sluzacego do obslugi zgloszen wywozowych, otrzymanego poza tym systemem, jezeli zapewniona jest jego autentycznosc,
+b) miedzy innymi dokumentu potwierdzajacego wywoz towaru poza UE, wystawionego w formie elektronicznej z systemu teleinformatycznego sluzacego do obslugi zgloszen wywozowych albo w formie potwierdzonego przez organ celny wydruku tego dokumentu,
+c) wylacznie zgloszenia wywozowego w formie papierowej albo jego kopia potwierdzona przez organ celny (SAD).

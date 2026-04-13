@@ -1,0 +1,5 @@
+X100
+Podstawowym zalozeniem w przypadku obliczenia kwoty podatku od towarow i uslug od importu towarow, co do zasady, jest:
+a) obowiazek samonaliczenia podatku w zgloszeniu celnym,
+b) obowiazek naliczania podatku przez organ celny w decyzji,
+c) samonaliczanie lub decyzja organu w zaleznosci od zastosowanej procedury celnej.

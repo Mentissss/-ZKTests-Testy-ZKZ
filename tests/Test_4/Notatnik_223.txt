@@ -1,0 +1,5 @@
+X001
+W celu ustalenia wartosci celnej metoda wartosci transakcyjnej zglaszajacy powinien przedlozyc:
+fakture proforma,
+fakture prowizoryczna,
+fakture handlowa.

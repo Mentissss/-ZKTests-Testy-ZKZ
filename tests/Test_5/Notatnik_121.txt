@@ -1,0 +1,5 @@
+X100
+Data rozpoczecia biegu terminu na zalatwienie sprawy w przypadku wezwania do uzupelnienia wniosku jest:
+a) data uzupelnienia wniosku,
+b) data zlozenia wniosku pierwotnego,
+c) data zlozenia wniosku pierwotnego przedluzona o 30 dni.

@@ -1,0 +1,5 @@
+X001
+Procedura tranzytu zewnetrznego zostaje zakonczona:
+a. w magazynie czasowego skladowania
+b. w skladzie wolnoclowym
+c. w urzedzie celnym przeznaczenia 

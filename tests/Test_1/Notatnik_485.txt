@@ -1,0 +1,5 @@
+X010
+Platnikami w swietle Ordynacji podatkowej sa podmioty:
+Zobowiazane do obliczenia, pobrania i odprowadzenia wylacznie podatku dochodowego od osob fizycznych
+Zobowiazane do obliczenia, pobrania i odprowadzenia podatku organowi podatkowemu
+Ktorym podatnik udzielil pelnomocnictwa do zlozenia deklaracji w swoim imieniu

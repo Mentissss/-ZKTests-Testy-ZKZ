@@ -1,0 +1,5 @@
+X010
+Dozór celny sprawuje siê co do zasady nad towarami :
+a. o unijnym statusie celnym
+b. o nieunijnym statusie celnym
+c. o unijnym i nieunijnym statusie celnym

@@ -1,0 +1,5 @@
+X001
+podczas kontroli rodzaju paliwa ze zbiornika pojazdów funkcjonariusz UCS pobiera próbkê w iloœci nie wiêkszej ni¿: 
+1 litr 
+0,2 litra 
+0,5 litra

@@ -1,0 +1,5 @@
+X100
+Obowiazek podatkowy w akcyzie z tytulu importu samochodu osobowego niezarejestrowanego wczesniej na terytorium kraju zgodnie z przepisami o ruchu drogowym powstaje z dniem:
+a. powstania dlugu celnego w rozumieniu przepisow prawa celnego.
+b. przemieszczenia samochodu na terytorium kraju.
+c. sprzedazy samochodu przed pierwsza rejestracja.

@@ -1,0 +1,5 @@
+X010
+Je¿eli postêpowanie podatkowe jest wszczynane z urzêdu na podstawie postanowienia o wszczêciu, to za datê wszczêcia uznaje siê :
+czternasty dzieñ po dniudorêczenia stronie postanowienia o wszczêciu postêpowania
+dzieñ dorêczenia stronie postanowienia o wszczêciu postêpowania 
+dzieñ wydania pierwszego pisma w postêpowaniu (np. wezwania strony do stawiennictwa)

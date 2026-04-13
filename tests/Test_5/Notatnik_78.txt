@@ -1,0 +1,5 @@
+X100
+Na gruncie Kodeksu karnego skarbowego, niedopuszczalne jest udzielenie zezwolenia na dobrowolne poddanie sie odpowiedzialnosci, jezeli:
+a. przestepstwo skarbowe zagrozone jest kara ograniczenia wolnosci albo kara pozbawienia wolnosci,
+b. przestepstwo skarbowe zagrozone jest kara grzywny w stawkach dziennych,
+c. wykroczenie skarbowe zagrozone jest kara grzywny.

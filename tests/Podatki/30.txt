@@ -1,0 +1,5 @@
+X100
+10.	Za datê powstania przychodu w podatku dochodowym od osób prawnych uwa¿a siê: 
+a.	dzieñ wydania rzeczy, zbycia prawa maj¹tkowego lub wykonania us³ugi, albo czêœciowego wykonania us³ugi, nie póŸniej ni¿ dzieñwystawienia faktury albo uregulowania nale¿noœci.
+b.	dzieñ wydania rzeczy, zbycia prawa maj¹tkowego lub wykonania us³ugi, albo czêœciowego wykonania us³ugi, nie wczeœniej ni¿ dzieñwystawienia faktury albo uregulowania nale¿noœci.
+c.	dzieñ sprzeda¿y towaru lub wykonania us³ugi

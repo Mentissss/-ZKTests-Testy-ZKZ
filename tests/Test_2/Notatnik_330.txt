@@ -1,0 +1,5 @@
+X001
+W postepowaniu podatkowym osobom fizycznym mozna doreczac pisma m.in. :
+a. wylacznie przez pracownikow urzedu obslugujacego organ lub za posrednictwem operatora pocztowego
+b. wylacznie za posrednictwem srodkow komunikacji elektronicznej
+c. zarowno przez pracownikow urzedu obslugujacego organ, za posrednictwem operatora pocztowego jak i za posrednictwem srodkow komunikacji elektronicznej

@@ -1,0 +1,5 @@
+X001
+podczas kontroli obrachunkowej znaków akcyzy: 
+oblicza siê jedynie iloœæ znaków wydanych do oznaczenie oraz iloœæ znaków uszkodzonych, zniszczonych i utraconych w procesie oznaczanie 
+oblicza siê stratê znaków akcyzy w procesie oznaczenia w stosunku do liczby znaków wykorzystanych w ci¹gu roku kalendarzowego i porównuje do strat dopuszczalnych, 
+oblicza siê stratê znaków akcyzy w procesie oznaczania w stosunku do liczby znaków wykorzystanych w ci¹gu miesi¹ca kalendarzowego i porównuje siê do strat dopuszczalnych.

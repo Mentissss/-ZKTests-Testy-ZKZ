@@ -1,0 +1,5 @@
+X100
+Co to jest zabezpieczenie kwoty dlugu celnego?
+a) to instrument zapewniajacy zabezpieczenie finansowych roszczen organow celnych w przypadku powstania obowiazku zaplaty dlugu celnego,
+b) to pokrycie kwoty dlugu celnego przez dluznika,
+c) to odsaldowanie kwoty dlugu celnego w systemie finansowo-ksiegowym ZEFIR2.

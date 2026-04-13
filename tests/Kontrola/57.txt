@@ -1,0 +1,5 @@
+X010
+Organ celny odmawia przyjêcia zg³oszenia celnego, gdy:
+a. jest z³o¿one przez agenta celnego
+b. nie s¹ spe³nione wymogi formalne
+c. wskazano w zg³oszeniu z³y kod taryfowy towaruonej przepisami prawa.

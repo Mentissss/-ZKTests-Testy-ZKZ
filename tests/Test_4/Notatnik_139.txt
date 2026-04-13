@@ -1,0 +1,5 @@
+X010
+Pochodzenie towaru to
+a) kraj z ktorego towar przyjechal,
+b) zasadniczo kraj w ktorym zostal wyprodukowany,
+c) kraj w ktorym zostal poddany ostatniej obrobce bez wzgledu na jej rodzaj.

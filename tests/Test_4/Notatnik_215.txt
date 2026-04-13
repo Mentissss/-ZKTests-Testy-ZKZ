@@ -1,0 +1,5 @@
+X010
+Ktora z zastepczych metod ustalania wartosci celnej nalezy zastosowac w pierwszej kolejnosci, jezeli wartosc celna importowanych towarow nie moze byc ustalona metoda wartosci transakcyjnej ?
+metode wartosci transakcyjnej towarow podobnych,
+metode wartosci transakcyjnej towarow identycznych,
+metode wartosci kalkulowanej.

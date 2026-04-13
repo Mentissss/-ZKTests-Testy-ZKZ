@@ -1,0 +1,5 @@
+X010
+Przeszukanie osoby i odziezy na niej moze dokonywac:
+a) jedynie umundurowany funkcjonariusz
+b) nalezy dokonywac w miare mozliwosci za pomoca osoby tej samej plci
+c) powinno byc dokonane w obecnosci adwokata

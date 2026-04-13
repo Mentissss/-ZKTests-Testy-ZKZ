@@ -1,0 +1,5 @@
+X001
+Karnet TIR wykorzystywany jest w transporcie:
+a) kolejowym
+b) lotniczym
+c) drogowym

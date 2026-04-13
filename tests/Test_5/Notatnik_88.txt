@@ -1,0 +1,5 @@
+X001
+W trakcie kontroli wykonywanej w ramach systemu monitorowania drogowego i kolejowego przewozu towarow nie sporzadza sie protokolu w przypadku :
+a . pobrania probki towaru
+b . nalozenia zamkniec urzedowych
+c . nie stwierdzenia nieprawidlowosci

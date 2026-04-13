@@ -1,0 +1,5 @@
+X001
+Pracownik organu podatkowego podlega wylaczeniu od udzialu w postepowaniu, jezeli strona postepowania jest::
+a. osoba zamieszkujaca w bezposrednim sasiedztwie pracownika organu.
+b. osoba zatrudniona w organie podatkowym wyzszego stopnia.
+c. tesciowa pracownika.

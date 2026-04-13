@@ -1,0 +1,5 @@
+X100
+Znaki akcyzy to:
+a. podatkowe i legalizacyjne znaki akcyzy,
+b. tylko legalizacyjne znaki akcyzy, ktore sa potwierdzeniem prawa podmiotu obowiazanego do oznaczania wyrobow akcyzowych znakami akcyzy, do przeznaczenia tych wyrobow do sprzedazy.
+c. tylko podatkowe znaki akcyzy, ktore sa potwierdzeniem wplaty kwoty stanowiacej wartosc podatkowych znakow akcyzy.

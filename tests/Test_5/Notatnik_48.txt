@@ -1,0 +1,5 @@
+X010
+W razie zmiany formy postepowania z dochodzenia w sprawie o przestepstwo w sledztwo:
+a) naczelnik UCS moze zakonczyc sledztwo wnoszac do sadu wniosek o zezwolenie na DPO
+b) przeprowadzonych czynnosci nie powtarza sie, nalezy jednak dokonac czynnosci ktore nie byly wymagane w dochodzeniu
+c) naczelnik UCS wydaje postanowienie o wszczeciu sledztwa

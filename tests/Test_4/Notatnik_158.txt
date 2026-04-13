@@ -1,0 +1,5 @@
+X010
+Przychodem w rozumieniu ustawy o podatku dochodowym od osob fizycznych, podatnikow opodatkowanych VAT jest:
+a) przychod pomniejszony o koszty uzyskania przychodu,
+b) przychod pomniejszony o nalezny podatek VAT,
+c) przychod powiekszony o nalezny podatek VAT.

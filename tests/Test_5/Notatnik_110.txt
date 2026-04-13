@@ -1,0 +1,5 @@
+X010
+Do wykrycia przemytu w kole zapasowym pojazdu najprosciej zastosowac :
+a. endoskop
+b. detektor przemytu
+c. fiberoskop

@@ -1,0 +1,5 @@
+X001
+Podatnik akcyzy jest zobowi¹zany co do zasady obliczaæ i wp³acaæ akcyzê:
+• za miesiêczne okresy rozliczeniowe w terminie do 10. dnia miesi¹ca nastêpuj¹cego po miesi¹cu, w którym powsta³ obowi¹zek podatkowy,
+• za roczny okres rozliczeniowy w terminie do 30 kwietnia za poprzedni rok kalendarzowy,
+• za miesiêczne okresy rozliczeniowe w terminie do 25. dnia miesi¹ca nastêpuj¹cego po miesi¹cu, w którym powsta³ obowi¹zek podatkowy .

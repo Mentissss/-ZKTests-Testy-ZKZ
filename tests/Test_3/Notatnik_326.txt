@@ -1,0 +1,5 @@
+X001
+W toku kontroli podatkowej pelnomocnikiem kontrolowanego moze byc:
+a. osoba prawna,
+b. radca prawny zatrudniony w organie podatkowym, ktory prowadzi kontrole podatkowa,
+c. osoba fizyczna posiadajaca pelna zdolnosc do czynnosci prawnych.

@@ -1,0 +1,5 @@
+X001
+Podstawow¹ metod¹ ustalania wartoœci celnej pojazdów samochodowych jest:
+a) metoda ceny transakcyjnej towaru identycznego,
+b) metoda ostatniej szansy,
+c) metoda wartoœci transakcyjnej.

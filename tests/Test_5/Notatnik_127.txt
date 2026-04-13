@@ -1,0 +1,5 @@
+X100
+System Zharmonizowany (HS) to:
+a) wielozadaniowa, szesciocyfrowa nomenklatura oparta na serii podzielonych czterocyfrowych pozycji,
+b) wielozadaniowa nomenklatura identyfikowana przez 8 cyfrowy kod,
+c) wielozadaniowa nomenklatura identyfikowana przez 4 cyfrowy kod.

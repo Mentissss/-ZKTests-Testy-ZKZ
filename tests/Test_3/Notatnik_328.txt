@@ -1,0 +1,5 @@
+X010
+Zasadniczy termin zalatwienia sprawy w postepowaniu podatkowym:
+a. nie jest okreslony  w przepisach, ze wzgledu na fakt, ze organ w postepowaniu podatkowym musi zebrac pelny material dowodowy
+b. okreslony jest jako miesiac, a w sprawach szczegolnie skomplikowanych jako dwa miesiace od dnia wszczecia postepowania
+c. ograniczony jest tylko terminem przedawnienia zobowiazan podatkowych

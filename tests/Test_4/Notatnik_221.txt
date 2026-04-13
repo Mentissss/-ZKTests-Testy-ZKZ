@@ -1,0 +1,5 @@
+X010
+Czy przy ustalaniu wartosci celnej do ceny faktycznie zaplaconej lub naleznej za towar moga byc dodawane okreslone w prawie celnym, dodatkowe koszty?
+nie,
+tak,
+tak, ale tylko za zgoda zglaszajacego,

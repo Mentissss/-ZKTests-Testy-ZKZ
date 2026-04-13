@@ -1,0 +1,5 @@
+X010
+Uprawnienie do kontroli wykresowek w ramach przewozu drogowego realizowanego w UE dotyczy:
+a. 28 wykresowek
+b. wykresowki z biezacego dnia i wykresowek z poprzednich 28 dni
+c. wykresowki z biezacego tygodnia oraz za ostatni dzien tygodnia poprzedniego

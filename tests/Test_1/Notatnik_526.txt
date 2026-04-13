@@ -1,0 +1,5 @@
+X001
+Jezeli przyjecie zgloszenia celnego powoduje powstanie dlugu celnego towary moga zostac :
+a) zwolnione po zaksiegowaniu dlugu
+b) zwolnione po przyjeciu zgloszenia
+c) zwolnione, gdy kwota dlugu celnego zostala zaplacona lub zabezpieczona

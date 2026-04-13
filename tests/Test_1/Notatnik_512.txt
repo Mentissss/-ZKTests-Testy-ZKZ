@@ -1,0 +1,5 @@
+X010
+Gdy wydaje sie, ze towar moze byc klasyfikowany do dwoch lub wiecej pozycji Systemu Zharmonizowanego HS, to w pierwszej kolejnosci nalezy:
+Wybrac pozycje HS kierujac sie materialem nadajacym zasadniczy charakter wyrobowi
+Wybrac pozycje okreslajaca towar w sposob najbardziej szczegolowy
+Wybrac pozycje HS najwyzsza numerycznie z mozliwych do zastosowania

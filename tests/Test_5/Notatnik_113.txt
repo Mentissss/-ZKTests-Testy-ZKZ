@@ -1,0 +1,5 @@
+X010
+Przewoz regularny to :
+a. niepubliczny przewoz regularny okreslonej grupy osob, z wylaczeniem innych osob
+b . publiczny przewoz osob i ich bagazu w okreslonych odstepach czasu i okreslonymi trasami
+c . wielokrotny przewoz zorganizowanych grup osob tam i z powrotem, miedzy tym samym miejscem poczatkowym a tym samym miejscem docelowym

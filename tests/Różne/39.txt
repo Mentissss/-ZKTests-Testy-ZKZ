@@ -1,0 +1,5 @@
+X100
+Je¿eli w wyniku podjêtych czynnoœci sprawdzaj¹cych oka¿e siê, ¿e podatnik nie istnieje lub mimo podjêtych udokumentowanych prób nie ma mo¿liwoœci skontaktowania siê z podatnikiem albo jego pe³nomocnikiem:
+a) nastêpuje z urzêdu wykreœlenie podatnika z rejestru podatników VAT bez koniecznoœci zawiadamiania o tym podatnika,
+b) nie nastêpuje wykreœlenie podatnika z rejestru podatników VAT,
+c) wykreœlenie nastêpuje je¿eli nie z³o¿y³ deklaracji VAT.

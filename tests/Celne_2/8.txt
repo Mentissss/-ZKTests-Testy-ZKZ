@@ -1,0 +1,5 @@
+X010
+Karnet TIR wykorzystywany jest:
+a) w procedurze dopuszczenia do obrotu
+b) w procedurze tranzytu,
+c) w procedurze odprawy czasowej

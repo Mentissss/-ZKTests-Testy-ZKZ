@@ -1,0 +1,5 @@
+X001
+Protokol z czynnosci przeszukania sporzadza sie :
+a. gdy podczas przeszukania znaleziono przedmioty mogace stanowic dowod w sprawie,
+b. gdy podczas przeszukania nastapilo przymusowe odebranie rzeczy,
+c. po przeprowadzeniu przeszukania.

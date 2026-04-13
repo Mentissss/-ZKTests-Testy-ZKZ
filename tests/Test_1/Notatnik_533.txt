@@ -1,0 +1,5 @@
+X100
+Jaka pozycje nalezy stosowac klasyfikujac wyrob skladajacy sie z dwoch lub wiecej materialow o ile mozna ustalic ze jeden z nich dominuje pod jakims wzgledem.
+a) pozycja skladnika nadajacego zasadniczy charakter temu wyrobowi
+b) pozycja skladnika o najwiekszej wartosci
+c) Pozycja skladnika ostatniego w kolejnosci numerycznej

@@ -1,0 +1,5 @@
+X100
+Znaki akcyzy moga miec postac:
+a. banderol, znakow cechowych lub odciskow pieczeci.
+b. decyzji wlasciwego naczelnika urzedu celno-skarbowego.
+c. odrecznych podpisow na etykiecie wyrobu akcyzowego.

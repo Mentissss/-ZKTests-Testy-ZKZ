@@ -1,0 +1,5 @@
+X100
+Czy funkcjonariusze celni maj¹ uprawnienia do zatrzymywania dokumentów stwierdzaj¹cych uprawnienia do kierowania pojazdem:
+a. nie
+b. tak
+c. tak, ale tylko w przypadku kolizji

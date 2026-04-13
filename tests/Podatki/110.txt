@@ -1,0 +1,5 @@
+X100
+W przypadku samochodu osobowego przedmiotem opodatkowania akcyz¹ jest:
+import samochodu osobowego niezarejestrowanego wczeœniej na terytorium kraju zgodnie z przepisami oruchu drogowym.
+import ka¿dego samochodu osobowego zarejestrowanego wczeœniej na terytorium kraju zgodnie z przepisami o ruchu drogowym.
+eksport samochodu osobowego niezarejestrowanego wczeœniej na terytorium kraju zgodnie z przepisami o ruchu drogowym.

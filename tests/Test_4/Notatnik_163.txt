@@ -1,0 +1,5 @@
+X001
+Przekazana darowizne podatnik podatku dochodowego od osob fizycznych oplacajacy podatek wedlug skali podatkowej moze odliczyc:
+a) zarowno od dochodu jak i od podatku,
+b) wylacznie od przychodu.
+c) wylacznie od dochodu.

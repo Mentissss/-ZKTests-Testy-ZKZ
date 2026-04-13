@@ -1,0 +1,5 @@
+X100
+Podatnikiem akcyzy z tytulu importu wyrobow akcyzowych jest:
+a. importer oraz podmiot niebedacy importerem, jesli ciazy na nim obowiazek uiszczenia cla.
+b. przedstawiciel podatkowy - wyznaczony przez sprzedawce z kraju trzeciego jego reprezentant.
+c. dowolny podmiot dokonujacy przywozu wyrobow akcyzowych z terytorium Unii Europejskiej na terytorium kraju.

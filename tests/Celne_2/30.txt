@@ -1,0 +1,5 @@
+X010
+W ramach weryfikacji danych zawartych w zg³oszeniu celnym organ celny mo¿e:
+a) za¿¹daæ od zg³aszaj¹cego pojemników na pobrane próbki,
+b) pobraæ próbki w celu ich dalszej analizy,
+c) skontrolowaæ zg³oszenie i dokumenty do niego za³¹czone.

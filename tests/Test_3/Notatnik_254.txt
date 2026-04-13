@@ -1,0 +1,5 @@
+X100
+Kto podaje kurs waluty (EUR) dla potrzeb klasyfikacji taryfowej i przeliczenia stawek celnych kwotowych i stawek celnych specyficznych:
+Komisja Europejska,
+Minister Finansow
+NBP,

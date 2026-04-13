@@ -1,0 +1,5 @@
+X100
+System wymiany informacji pomiêdzy pañstwami cz³onkowskimi o transakcjach i podatnikach VAT to:
+a) VIES,
+b) NCTS,
+c) TARIC.

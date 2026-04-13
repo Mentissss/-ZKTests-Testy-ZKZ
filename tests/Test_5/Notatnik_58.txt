@@ -1,0 +1,5 @@
+X010
+Na gruncie Kodeksu karnego skarbowego, sad moze udzielic zezwolenia na dobrowolne poddanie sie odpowiedzialnosci, jezeli:
+a. spolka akcyjna, w ktorej jest zatrudniony sprawca, uiscila kwote odpowiadajaca co najmniej najnizszej karze grzywny grozacej za dany czyn zabroniony,
+b. sprawca uiscil kwote odpowiadajaca co najmniej najnizszej karze grzywny grozacej za dany czyn zabroniony,
+c. brat sprawcy uiscil kwote odpowiadajaca co najmniej najnizszej karze grzywny grozacej za dany czyn zabroniony.

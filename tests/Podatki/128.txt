@@ -1,0 +1,5 @@
+X100
+Je¿eli procedura zawieszenia poboru akcyzy jest zwi¹zana z przemieszczaniem wyrobów akcyzowych, warunkiem jej zastosowania jest:
+zastosowanie e-AD albo dokumentu zastêpuj¹cego e-AD oraz z³o¿enie we w³aœciwym urzêdzie skarbowym zabezpieczenia akcyzowego.
+zastosowanie dokumentu dostawy.
+rejestracja przemieszczania w systemie SENT.

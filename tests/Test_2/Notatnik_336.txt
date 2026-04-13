@@ -1,0 +1,5 @@
+X010
+Decyzja konczaca postepowanie podatkowe:
+a. nie rozstrzyga sprawy,
+b. rozstrzyga sprawe, co do jej istoty,
+c. wydawana jest przez pracownikow prowadzacych to postepowanie.

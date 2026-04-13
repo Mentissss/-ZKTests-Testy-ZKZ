@@ -1,0 +1,5 @@
+X100
+W przypadku okreslenia kwoty akcyzy z tytulu importu wyrobow akcyzowych w decyzji naczelnika urzedu celno-skarbowego podatnik jest zobowiazany w terminie:
+a. 10 dni, liczac od dnia doreczenia tej decyzji, zaplacic roznice miedzy akcyza wynikajaca z tej decyzji a akcyza pobrana przez ten organ wraz z naleznymi odsetkami za zwloke od niepobranej kwoty akcyzy.
+b. 30 dni, liczac od dnia doreczenia tej decyzji, zaplacic roznice miedzy akcyza wynikajaca z tej decyzji a akcyza pobrana przez ten organ.
+c. 14 dni, liczac od dnia doreczenia tej decyzji, zaplacic roznice miedzy akcyza wynikajaca z tej decyzji a akcyza pobrana przez ten organ wraz z naleznymi odsetkami za zwloke od niepobranej kwoty akcyzy.

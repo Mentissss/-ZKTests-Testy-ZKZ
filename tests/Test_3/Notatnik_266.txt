@@ -1,0 +1,5 @@
+X001
+Pierwsze cztery cyfry kodu HS towaru to:
+Podpozycja HS
+Dzial HS
+Pozycja HS

@@ -1,0 +1,5 @@
+X001
+Ustalajac wartosc celna  towaru zakupionego w walucie obcej, nalezy dokonac stosownego przeliczenia wedlug:
+kursu oglaszanego przez Europejski Bank Centralny
+kursu oglaszanego przez Ministra Finansow
+kursu oglaszanego przez Prezesa Narodowego Banku Polskiego

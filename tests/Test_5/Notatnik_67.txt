@@ -1,0 +1,5 @@
+X100
+Naczelnik urzedu celno-skarbowego z urzedu przeprowadza czynnosci wyjasniajace w sprawach o wykroczenia, w celu ustalenia, czy istnieja podstawy do:
+a. wystapienia z wnioskiem o ukaranie oraz zebrania danych niezbednych do sporzadzenia takiego wniosku,
+b. sporzadzenia i wniesienia do sadu aktu oskarzenia,
+c. umorzenia postepowania.

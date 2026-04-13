@@ -1,0 +1,5 @@
+X001
+Opakowania wielokrotnego uzytku wystepujace z przywozonym towarem klasyfikujemy:
+Zawsze razem z towarem,
+Zawsze oddzielnie,
+Zasadniczo z towarem, jesli opakowanie nie nadaje towarowi zasadniczego charakteru,

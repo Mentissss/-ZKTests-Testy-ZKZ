@@ -1,0 +1,5 @@
+X001
+Z preferencji w ramach unii celnych korzystaja towary:
+pochodzace z krajow - stron unii celnej,
+towary zakupione w kraju - stronie unii celnej,
+towary znajdujace sie w wolnym obrocie w unii celnej.

@@ -1,0 +1,5 @@
+X001
+Œrodek techniczny nie s³u¿¹cy monitorowaniu drogowego i kolejowego przewozu towarów to :
+a . rejestr zg³oszeñ wraz z modu³em gromadz¹cym i przetwarzaj¹cym dane geolokalizacyjne
+b . lokalizator
+c . tachograf cyfrowy

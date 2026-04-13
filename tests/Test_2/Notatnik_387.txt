@@ -1,0 +1,5 @@
+X001
+Wielka wartosc jest to wartosc, ktora w czasie popelnienia czynu zabronionego przekracza:
+a) trzystukrotna wysokosc minimalnego wynagrodzenia
+b) piecsetkrotna wysokosc minimalnego wynagrodzenia
+c) tysiackrotna wysokosc minimalnego wynagrodzenia

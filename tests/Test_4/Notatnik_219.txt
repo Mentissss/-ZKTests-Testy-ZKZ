@@ -1,0 +1,5 @@
+X001
+Prowizja od zakupu w rozumieniu unijnego kodeksu celnego to :
+oplata poniesiona przez eksportera na rzecz jego agenta za usluge polegajaca na reprezentowaniu go przy sprzedazy towarow dla ktorych ustalana jest wartosc celna,
+oplata poniesiona przez eksportera na rzecz przewoznika morskiego,
+oplata poniesiona przez importera na rzecz jego agenta za reprezentowanie go przy zakupie wycenianych towarow.

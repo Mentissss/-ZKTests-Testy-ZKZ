@@ -1,0 +1,5 @@
+X010
+W swietle przepisow o podatku od towarow i uslug naczelnik urzedu skarbowego moze przedluzyc termin zwrotu na rachunek bankowy podatnika nadwyzki podatku od towarow i uslug naliczonego nad naleznym, jezeli:
+a) podatnik wykazuje kwoty do zwrotu przez kolejne 12 miesiecy,
+b) zasadnosc zwrotu wymaga dodatkowego zweryfikowania,
+c) kwota wykazana do zwrotu przekracza 15 000 euro.

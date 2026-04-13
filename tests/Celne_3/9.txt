@@ -1,0 +1,5 @@
+X100
+status celny oznacza 
+okreœlenie towaru jako unijny lub nieunijny 
+okreœlenie towaru jako wy³¹cznie nieunijny
+okreœlenie towaru jako wy³¹cznie unijne

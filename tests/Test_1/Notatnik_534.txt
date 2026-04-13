@@ -1,0 +1,5 @@
+X001
+W przypadku nielegalnego wprowadzenia towaru na teren UE dlug celny powstaje z chwila:
+a. stwierdzenia przez organ celny, ze towar zostal wprowadzony nielegalnie
+b. wydania decyzji o powstaniu dlugu celnego
+c. nielegalnego wprowadzenia 

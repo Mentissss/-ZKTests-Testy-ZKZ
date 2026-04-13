@@ -1,0 +1,5 @@
+X010
+Oplaty licencyjne doliczane sa do wartosci celnej pod warunkiem:
+Ze sa wyszczegolnione na dokumencie handlowym,
+Ze sa warunkiem sprzedazy przedmiotowego towaru,
+Ze sa stanowia rozliczenie z osoba trzecia,

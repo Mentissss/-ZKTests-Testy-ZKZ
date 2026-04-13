@@ -1,0 +1,5 @@
+X001
+Pelnomocnikiem strony w postepowaniu podatkowym moze byc:
+a) spolka z o.o.
+b) spolka akcyjna,
+c) osoba fizyczna majaca pelna zdolnosc do czynnosci prawnych.

@@ -1,0 +1,5 @@
+X001
+Termin na uiszczenie dlugu celnego wynosi:
+2 dni od daty powiadomienia dluznika
+Niezwlocznie, lecz nie pozniej niz w terminie 30 dni od daty zwolnienia towaru
+10 dni od daty powiadomienia jezeli dluznik nie korzysta z zadnych ulatwien platniczych

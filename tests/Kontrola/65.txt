@@ -1,0 +1,5 @@
+X100
+Rewizja celna czêœci towarów :
+a. odnosi siê do ca³oœci towarów objêtych danym zg³oszeniem celnym
+b. odnosi siê do ca³oœci towarów objêtych zg³oszeniem celnym, z wy³¹czeniem towarów podlegaj¹cych wspólnej polityce rolnej
+c. odnosi siê jedynie do tej partii towarów

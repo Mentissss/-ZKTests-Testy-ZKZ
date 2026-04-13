@@ -1,0 +1,5 @@
+X010
+Ktora strukture JPK podatnik obowiazany jest przekazywac co miesiac bezposrednio do Ministerstwa Finansow:
+a) JPK_WB czyli wyciag bankowy,
+b) JPK_VAT, czyli ewidencje zakupu i sprzedazy,
+c) JPK_MAG, czyli ewidencje magazynowa.

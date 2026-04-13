@@ -1,0 +1,5 @@
+X001
+Podatnikiem podatku dochodowego od osob fizycznych moze byc:
+Spolka jawna
+Spolka cywilna
+Niepelnoletnia osoba fizyczna

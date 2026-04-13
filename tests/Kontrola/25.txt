@@ -1,0 +1,5 @@
+X001
+Zamkniêcia urzêdowe mog¹ byæ nak³adane i zdejmowane przez :
+a. tylko naczelnika urzêdu celno skarbowego
+b. naczelnika urzêdu skarbowego
+c. naczelnika urzêdu celno skarbowego oraz podmioty przez niego upowa¿nione

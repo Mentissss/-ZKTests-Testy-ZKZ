@@ -1,0 +1,5 @@
+X100
+Organ celny mo¿e prowadziæ sk³ad celny:
+a) publiczny sk³ad typu III,
+b) publiczny sk³ad typu I,
+c) publiczny sk³ad typu II.

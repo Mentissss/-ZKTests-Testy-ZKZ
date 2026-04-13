@@ -1,0 +1,5 @@
+X010
+Podatek od czynnosci cywilnoprawnych podlega wplacie w terminie:
+a) 7 dni od dnia powstania obowiazku podatkowego,
+b) 14 dni od dnia powstania obowiazku podatkowego,
+c) 30 dni od dnia powstania obowiazku podatkowego.

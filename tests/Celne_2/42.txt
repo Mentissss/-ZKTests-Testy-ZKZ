@@ -1,0 +1,5 @@
+X010
+W procedurze odprawy czasowej z czêœciowym zwolnieniem od c³a, 3% c³a pobiera siê w momencie:
+a) w miesiêcznych odstêpach w ci¹gu trwania ca³ej procedur,
+b) zamkniêcia procedury,
+c) obejmowania towarów procedur¹ odprawy czasowej.

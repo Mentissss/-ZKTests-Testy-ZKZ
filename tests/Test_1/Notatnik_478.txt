@@ -1,0 +1,5 @@
+X001
+Co jest procedura:
+a) zwolnienie towaru
+b) umieszczenie towaru w magazynie czasowego skladowania
+c) objecie towaru procedura wywozu 

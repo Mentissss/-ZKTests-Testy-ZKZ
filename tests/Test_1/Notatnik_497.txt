@@ -1,0 +1,5 @@
+X001
+Kontrolujacy w ramach SENT zobowiazany jest do sporzadzenia protokolu z kontroli w przypadku:
+Tylko na zadanie kontrolowanego
+W kazdym przypadku przeprowadzenia kontroli bez wzgledu na jej wynik
+Stwierdzenie nieprawidlowosci lub na zadanie kontrolowanego

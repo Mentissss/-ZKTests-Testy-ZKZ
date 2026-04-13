@@ -1,0 +1,5 @@
+X001
+Badanie towarów i pobieranie próbek mo¿e nast¹piæ wg UKC z inicjatywy :
+a. wy³¹cznie organu celnego
+b. wy³¹cznie podmiotu dysponuj¹cego towarem
+c. zarówno organu celnego jak i podmiotu dysponuj¹cego towarem

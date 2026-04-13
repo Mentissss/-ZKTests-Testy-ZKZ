@@ -1,0 +1,5 @@
+X001
+W protokole przesluchania swiadka, sporzadzonym w sledztwie, nie zamieszcza sie:
+a) daty urodzenia swiadka
+b) zajecie swiadka
+c) numeru telefaksu swiadka.

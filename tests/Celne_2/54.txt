@@ -1,0 +1,5 @@
+X010
+Pozycja towarowa oznaczana jest:
+a) pierwszymi dwoma cyframi kodu CN,
+b) pierwszymi czterema cyframi kodu CN,
+c) oœmioma cyframi kodu CN.

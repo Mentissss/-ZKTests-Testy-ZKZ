@@ -1,0 +1,5 @@
+X001
+Wartosc celna towarow bedacych przedmiotem darowizny ustala sie:
+a) na podstawie metody wartosci transakcyjnej,
+b) na podstawie metody wskazanej przez eksportera,
+c) zastosowaniem zastepczych metod ustalania wartosci celnej.

@@ -1,0 +1,5 @@
+X100
+W przypadku importu samochodu osobowego podstawa opodatkowania akcyza jest:
+a. wartosc celna samochodu osobowego powiekszona o nalezne clo.
+b. wartosc celna samochodu osobowego powiekszona o nalezne clo i podatek od towarow i uslug.
+c. wartosc celna samochodu osobowego powiekszona o oplate celna.

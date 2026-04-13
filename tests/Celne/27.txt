@@ -1,0 +1,5 @@
+X010
+Zezwolenie na wywóz prekursorów mo¿e maksymalnie obejmowaæ:
+a) tylko jedn¹ substancje sklasyfikowan¹,
+b) dwie substancje sklasyfikowane,
+c) nie ma limitów iloœciowych substancji sklasyfikowanych.

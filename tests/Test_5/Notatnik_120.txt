@@ -1,0 +1,5 @@
+X100
+Kiedy dluznik uiszcza kwote naleznosci celnych
+a) w terminie 10 dni po otrzymaniu powiadomienia o kwocie dlugu celnego,
+b) w terminie 10 dni od momentu zaksiegowania kwoty naleznosci,
+c) w momencie zlozeniu zgloszenia celnego.

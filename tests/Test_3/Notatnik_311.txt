@@ -1,0 +1,5 @@
+X100
+Obowiazek oznaczania wyrobow akcyzowych legalizacyjnymi znakami akcyzy powstaje w przypadku wystapienia poza procedura zawieszenia poboru akcyzy wyrobow akcyzowych:
+a. nieoznaczonych, oznaczonych nieprawidlowo lub nieodpowiednimi znakami akcyzy, w szczegolnosci znakami uszkodzonymi, w przypadku gdy wyroby te przeznaczone sa do dalszej sprzedazy.
+b. zwolnionych od akcyzy.
+c. objetych zerowa stawka akcyzy.

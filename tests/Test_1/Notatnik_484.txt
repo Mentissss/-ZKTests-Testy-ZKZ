@@ -1,0 +1,20 @@
+X010
+Kto ponosi odpowiedzialnosc za naleznosci ciazace na towarze objetych procedura koncowego przeznaczenia
+a) osoba dysponujaca towarem
+b) posiadacz pozwolenia
+c) wlasciciel towaru 
+X100
+Zespoly maszyn, ktore skladaja sie z dwoch lub wiecej polaczonych w jedna calosc zaprojektowane do pelnienia kilku funkcji nalezy klasyfikowac
+a) do pozycji maszyny wykonujacej funkcje podstawowa
+b) do pozycji maszyny o najwiekszej wartosci,
+c) do pozycji maszyny o najwyzszej pozycji taryfowej 
+X010
+Dowodem potwierdzajacym bezposredni transport moze byc:
+a) dwa dokumenty przewozowe obejmujace cala trase przewozu
+b) jeden dokument CMR, obejmujacy cala trase towaru
+c) oswiadczenie importera 
+X001
+Do wartosci celnej wlicza sie oplaty zaladunkowe i manipulacyjne zwiazane z transportem towaru poniesione do:
+a)Granicy RP
+b) granicy Wspolnoty Europejskiej
+c)Do miejsca wprowadzenia na obszar celny Wspolnoty Europejskiej

@@ -1,0 +1,5 @@
+X001
+W procedurze tranzytu zewnetrznego (czyli towary nieunijne):
+a. zlozenie zabezpieczenia jest zawsze obligatoryjne
+b. zlozenie zabezpieczenia jest uzaleznione wylacznie od woli urzedu celnego
+c. zabezpieczenie nie jest wymagane przy przewozach droga powietrzna, rurociagami i koleja 

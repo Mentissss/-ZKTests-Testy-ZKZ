@@ -1,0 +1,5 @@
+X001
+Tymczasowe zajecie mienia ruchomego moze nastapic na:
+a. mieniu osob trzecich, ktore wyrazily na to zgode,
+b. mieniu osob najblizszych dla podejrzanego, ktore wyrazily na to zgode,
+c. na mieniu podejrzanego.

@@ -1,0 +1,5 @@
+X001
+Zgodnie z definicja zawarta w ustawie o podatku dochodowym od osob fizycznych, kosztami uzyskania przychodow sa:
+a) wszelkie koszty poniesione w celu osiagniecia przychodow,
+b) koszy poniesione w celu osiagniecia przychodow, z wyjatkiem kosztow wymienionych w ustawie jako niestanowiacych kosztow uzyskania przychodow,
+c) koszy poniesione w celu osiagniecia przychodow lub zachowania albo zabezpieczenia zrodla przychodow, z wyjatkiem kosztow wymienionych w ustawie jako niestanowiacych kosztow uzyskania przychodow.

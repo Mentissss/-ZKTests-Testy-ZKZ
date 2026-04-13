@@ -1,0 +1,5 @@
+X001
+Podatkiem jest:
+a) publicznoprawne, odp³atne, przymusowe oraz bezzwrotne œwiadczenie pieniê¿ne na rzecz Skarbu Pañstwa, województwa, powiatu lub gminy, wynikaj¹ce z ustawy podatkowej,
+b) publicznoprawne, nieodp³atne, dobrowolne oraz bezzwrotne œwiadczenie pieniê¿ne na rzecz Skarbu Pañstwa, województwa, powiatu lub gminy, wynikaj¹ce z ustawy podatkowej,
+c) publicznoprawne, nieodp³atne, przymusowe oraz bezzwrotne œwiadczenie pieniê¿ne na rzecz Skarbu Pañstwa, województwa, powiatu lub gminy, wynikaj¹ce z ustawy podatkowej.

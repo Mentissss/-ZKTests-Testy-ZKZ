@@ -1,0 +1,5 @@
+X010
+Naleznosci celne przywozowe sa wymagane wg stanu towaru, jego wartosci celnej oraz wg stawek z dnia:
+a) wprowadzenia na obszar celny Unii,
+b) przyjecia zgloszenia celnego,
+c) zwolnienia do procedury.

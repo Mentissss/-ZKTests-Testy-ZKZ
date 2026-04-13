@@ -1,0 +1,5 @@
+X010
+Jak nazywa siê system taryfy u¿ytkowej zarz¹dzany przez DG TAXUD.
+a) VIES,
+b) TARIC,
+c) ISZTAR.

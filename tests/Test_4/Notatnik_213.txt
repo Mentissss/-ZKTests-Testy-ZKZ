@@ -1,0 +1,5 @@
+X001
+Stosujac metode ostatniej szansy wartosc celna  jest ustalana w oparciu o:
+cene towarow na rynku wewnetrznym kraju wywozu,
+minimalna wartosc celna,
+dane dostepne na obszarze celnym UE.

@@ -1,0 +1,5 @@
+X100
+Procedura wywozy pozwala na:
+Wyprowadzenie towaru unijnego poza obszar celny UE
+Powrotny wywoz towaru
+Wyprowadzenie towaru nieunijnego poza obszar UE

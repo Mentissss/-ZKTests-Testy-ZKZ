@@ -1,0 +1,5 @@
+X100
+Rodzaj tachografów :
+a. cyfrowe
+b. kodowane
+c. satelitarne

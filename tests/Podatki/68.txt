@@ -1,0 +1,5 @@
+X100
+18.	Przez Jednolity Plik Kontrolny nale¿y rozumieæ:
+a.	ksiêgi i dokumenty ksiêgowe prowadzone za pomoc¹ programów komputerowych w odpowiednim formacie, przekazywane na ¿¹danie organu podatkowego, jak i bez takiego ¿¹dania,
+b.	ksiêgi i dokumenty ksiêgowe prowadzone za pomoc¹ programów komputerowych w odpowiednim formacie, przekazywane wy³¹cznie na ¿¹danie organu podatkowego,
+c.	wszystkie ksiêgi i dokumenty ksiêgowe prowadzone w formie zapisów  tradycyjnych, przekazywane do organu podatkowego raz w roku. 

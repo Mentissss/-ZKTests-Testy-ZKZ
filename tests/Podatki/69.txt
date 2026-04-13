@@ -1,0 +1,5 @@
+X010
+19.	Warunkiem zastosowania preferencyjnej stawki podatku od towarów i us³ug 0% w eksporcie jest posiadanie przez przedsiêbiorcê, przed up³ywem terminu z³o¿enia deklaracji VAT za dany okres rozliczeniowy:
+a.	wy³¹cznie dokumentu w formie elektronicznej, pochodz¹cego z systemu teleinformatycznego s³u¿¹cego do obs³ugi zg³oszeñ wywozowych, otrzymanego poza tym systemem, je¿eli zapewniona jest jego autentycznoœæ.
+b.	miêdzy innymi dokumentu potwierdzaj¹cego wywóz towaru poza UE, wystawionego w formie elektronicznej z systemu teleinformatycznego s³u¿¹cego do obs³ugi zg³oszeñ wywozowych albo w formie potwierdzonego przez organ celny wydruku tego dokumentu.
+c.	wy³¹cznie zg³oszenia wywozowego w formie papierowej z³o¿onego poza systemem teleinformatycznym s³u¿¹cym do obs³ugi zg³oszeñ wywozowych albo jego kopia potwierdzona przez organ celny (SAD). 

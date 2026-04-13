@@ -1,0 +1,5 @@
+X100
+Zgodnie z przepisami Kodeksu postepowania karnego mozna zatrzymac osobe, jezeli istnieje:
+Uzasadnione przypuszczenie, ze osoba podejrzana popelnila przestepstwo
+Podejrzenie, ze sprawca popelnil przestepstwo skarbowe
+Prawdopodobienstwo, ze sprawca popelnil wykroczenie skarbowe

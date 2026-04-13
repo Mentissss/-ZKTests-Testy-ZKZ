@@ -1,0 +1,5 @@
+X010
+W metodzie wartosci transakcyjnej towarow identycznych przyjmuje sie wartosc transakcyjna :
+najczesciej wystepujaca wartosc transakcyjna w przypadku stwierdzenia istnienia dwoch lub wiekszej liczby wartosci transakcyjnych towarow identycznych
+najnizsza wartosc transakcyjna w przypadku stwierdzenia istnienia dwoch lub wiekszej liczby wartosci transakcyjnych towarow identycznych
+najwyzsza wartosc transakcyjna w przypadku stwierdzenia istnienia dwoch lub wiekszej liczby wartosci transakcyjnych towarow identycznych

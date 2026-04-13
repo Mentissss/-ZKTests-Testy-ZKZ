@@ -1,0 +1,5 @@
+X010
+Zg³oszenia wywozowe realizowane s¹ za poœrednictwem systemu:
+a) ICS,
+b) AES,
+c) Zefir.

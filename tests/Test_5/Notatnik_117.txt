@@ -1,0 +1,5 @@
+X100
+Protokolu z kontroli celno skarbowej nie sporzadza sie po zakonczeniu kontroli wykonywanej :
+a. w zakresie przestrzegania przepisow prawa podatkowego
+b. w zakresie przestrzegania przepisow prawa celnego
+c. w zakresie identyfikacji rodzaju paliwa w zbiorniku srodka przewozowego

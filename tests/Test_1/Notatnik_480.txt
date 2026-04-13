@@ -1,0 +1,5 @@
+X001
+Zabezpieczenie w procedurze tranzytu powinien zlozyc:
+a. przewoznik
+b. nadawca przesylki
+c. osoba uprawniona do korzystania z tej procedury

@@ -1,0 +1,5 @@
+X010
+Czy przy ustalaniu wartoœci celnej do ceny faktycznie zap³aconej lub nale¿nej za towary mog¹ byæ dodawane okreœlone w prawie celnym, dodatkowe koszty?
+nie 
+tak 
+Tak ale tylko za zgod¹ zg³aszaj¹cego

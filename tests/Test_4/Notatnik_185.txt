@@ -1,0 +1,5 @@
+X010
+Deklaracje miesieczne VAT-7 skladane sa w terminie do:
+a) 20 dnia miesiaca nastepujacego po kazdym kolejnym miesiacu za okresy miesieczne,
+b) 25 dnia miesiaca nastepujacego po kazdym kolejnym miesiacu za okresy miesieczne,
+c) 15 dnia miesiaca nastepujacego po kazdym kolejnym miesiacu za okresy miesieczne.

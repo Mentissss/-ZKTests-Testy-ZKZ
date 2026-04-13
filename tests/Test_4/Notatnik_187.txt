@@ -1,0 +1,5 @@
+X001
+W przypadku, gdy przed dokonaniem dostawy towarow podatnik otrzymal czesc zaplaty, obowiazek podatkowy w podatku od towarow i uslug powstaje, co do zasady z chwila:
+a) dokonania dostawy,
+b) otrzymania calosci zaplaty,
+c) otrzymania czesci zaplaty, w odniesieniu do otrzymanej kwoty.

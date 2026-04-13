@@ -1,0 +1,5 @@
+X100
+Œrodek techniczny s³u¿¹cy monitorowaniu przewozu drogowego i kolejowego towarów to :
+a) zewnêtrzny system lokalizacji, który przekazuje do rejestru dane geolokalizacyjne œrodka transportu
+b) tachograf analogowy
+c) fiberoskop 

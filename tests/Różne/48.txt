@@ -1,0 +1,5 @@
+X010
+Obowi¹zek podatkowy w podatku od towarów i us³ug powstaje, co do zasady:
+a) dokonania zap³aty lub wystawienia faktury,
+b) z chwil¹ dokonania dostawy towarów lub wykonania us³ugi.
+c) wystawienia faktury.

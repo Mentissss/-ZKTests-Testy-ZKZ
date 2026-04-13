@@ -1,0 +1,5 @@
+X001
+W toku przesluchania w sprawie o wykroczenie skarbowe:
+a) przesluchujacy zapisuje tylko prawidlowe odpowiedzi,
+b) osoba przesluchiwana odpowiada tylko na pytania przesluchujacego,
+c) nalezy umozliwic swobodne wypowiedzenie sie osobie przesluchiwanej.

@@ -1,0 +1,5 @@
+X100
+Decyzja wydana przez organ podatkowy wi¹¿e ten organ:
+a) od chwili dorêczenia stronie, a gdy dzia³a przez pe³nomocnika, to od chwili dorêczenia pe³nomocnikowi,
+b) od chwili wydania,
+c) nie wi¹¿e organ tylko podatnika.

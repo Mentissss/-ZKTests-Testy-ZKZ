@@ -1,0 +1,5 @@
+X010
+Wedlug jakiej zasady umieszczone sa towary w Scalonej Nomenklaturze:
+Wg wartosci towarow od towarow o najnizszej wartosci do towarow o najwyzszej wartosci
+Od towarow najmniej przetworzonych do towarow o wysokim stopniu przetworzenia
+W przypadkowej kolejnosci

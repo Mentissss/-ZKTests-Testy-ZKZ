@@ -1,0 +1,5 @@
+X010
+Jezeli postepowanie podatkowe jest wszczynane z urzedu na podstawie postanowienia o wszczeciu, to za date wszczecia uznaje sie :
+a. czternasty dzien po dniu doreczenia stronie postanowienia o wszczeciu postepowania
+b. dzien doreczenia stronie postanowienia o wszczeciu postepowania
+c. dzien wydania pierwszego pisma w postepowaniu (np. wezwania strony do stawiennictwa)

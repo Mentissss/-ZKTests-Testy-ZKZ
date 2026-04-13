@@ -1,0 +1,5 @@
+X010
+W celu ustalenia prawidlowego kodu towaru we WTC nalezy w pierwszej kolejnosci kierowac sie:
+Notami Wyjasniajacymi,
+Ogolnymi Regulami Interpretacji Nomenklatury Scalonej,
+Przeznaczeniem towaru

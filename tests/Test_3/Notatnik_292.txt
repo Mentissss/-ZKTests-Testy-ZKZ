@@ -1,0 +1,5 @@
+X100
+W przypadku importu wyrobow akcyzowych, podatnik jest zobowiazany do obliczenia i wykazania kwoty akcyzy:
+a. w zgloszeniu celnym.
+b. w deklaracji podatkowej.
+c. w deklaracji uproszczonej.

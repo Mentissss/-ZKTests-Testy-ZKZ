@@ -1,0 +1,5 @@
+X001
+Jezeli rewizja celna dotyczy jedynie czesci towarow objetych zgloszeniem celnym to jej wyniki odnosza sie do?
+Czesci towaru objetego rewizja
+Czesci towaru objetego zgloszeniem celnym
+Calosci towaru objetego tym zgloszeniem celnym

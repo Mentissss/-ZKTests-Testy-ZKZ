@@ -1,0 +1,5 @@
+X001
+Naczelnik UCS w drodze decyzji mo¿e na terenie RP zarz¹dziæ konwój, w szczególnoœci gdy:
+a. towar wprowadzony do UE wymaga prze³adunku
+b. towar czasowo sk³adowany nie mo¿e byæ przekazany do depozytu lub magazynuczasowego sk³adowania
+c. istnieje uzasadnione podejrzenie, ¿e towar nie zostanie dostarczony do wskazanego UCS, Miejsca Uznanego, Miejsca Wyznaczonego

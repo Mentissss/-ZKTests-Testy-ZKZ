@@ -1,0 +1,5 @@
+X001
+Z preferencji w ramach uni celnych korzystaj¹ towary: 
+pochodz¹cy z krajów - stron unii celnej 
+towary zakupione w kraju - stronie unii celnej 
+towary znajduj¹ce siê w wolnym obrocie w unii celnej

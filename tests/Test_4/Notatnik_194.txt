@@ -1,0 +1,5 @@
+X010
+Dodatkowe zobowiazanie podatkowe w podatku od towarow i uslug powstanie gdy:
+a) Podatnik zlozy prawnie skuteczna korekte deklaracji i wplaci roznice podatku wraz z naleznymi odsetkami przed wszczeciem kontroli,
+b) Podatnik wykaze w deklaracji zanizana kwote zobowiazania podatkowego,
+c) nie istnieje w podatku od towarow i uslug instytucja dodatkowego zobowiazania podatkowego.

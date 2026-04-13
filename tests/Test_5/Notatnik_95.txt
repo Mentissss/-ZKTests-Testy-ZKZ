@@ -1,0 +1,5 @@
+X001
+Srodek techniczny nie sluzacy monitorowaniu drogowego i kolejowego przewozu towarow to :
+a . rejestr zgloszen wraz z modulem gromadzacym i przetwarzajacym dane geolokalizacyjne
+b . lokalizator
+c . tachograf cyfrowy

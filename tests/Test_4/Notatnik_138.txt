@@ -1,0 +1,5 @@
+X010
+W ktorym z ponizszych przypadkow nie mozna zastosowac metody wartosci transakcyjnej do ustalenia wartosci celnej towaru?
+a) jesli udzielono wysokiego rabatu ze wzgledu na koniunkture swiatowa,
+b) jesli towar zostal podarowany,
+c) jesli cena sprzedazy towaru jest potwierdzona faktura sprzed 12 miesiecy.

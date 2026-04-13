@@ -1,0 +1,5 @@
+X001
+Zgodnie z przepisami ustawy o podatku dochodowym od osob prawnych, rokiem podatkowym jest:
+a) zawsze rok kalendarzowy,
+b) zawsze okres kolejnych 12 miesiecy kalendarzowych,
+c) rok kalendarzowy lub inny okres trwajacy 12 kolejnych pelnych miesiecy kalendarzowych.

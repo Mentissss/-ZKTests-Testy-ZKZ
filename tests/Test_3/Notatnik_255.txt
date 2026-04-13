@@ -1,0 +1,5 @@
+X001
+Nazwy towarow w taryfie celnej:
+Zawsze sa odmienne od pojec stosowanych w handlu,
+Zawsze zgadzaja sie z terminami przyjetymi w handlu i technologii,
+Nie zawsze zgadzaja sie z terminami przyjetymi w handlu,

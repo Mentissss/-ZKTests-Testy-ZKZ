@@ -1,0 +1,5 @@
+X010
+W którym z poni¿szych przypadków nie mo¿na zastosowaæ metody wartoœci transakcyjnej do ustalenia wartoœci celnej towaru?
+a) jeœli udzielono wysokiego rabatu ze wzglêdu na koniunkturê œwiatow¹,
+b) jeœli towar zosta³ podarowany,
+c) jeœli cena sprzeda¿y towaru jest potwierdzona faktur¹ sprzed 12 miesiêcy

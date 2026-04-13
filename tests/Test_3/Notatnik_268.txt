@@ -1,0 +1,5 @@
+X001
+Symbol EA w taryfie celnej oznacza, ze
+towar zwolniony jest z naleznosci celnych
+towar objety jest dodatkowym clem ad valorem
+towar objety jest dodatkowym clem rolnym

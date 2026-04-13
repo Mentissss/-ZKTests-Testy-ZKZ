@@ -1,0 +1,5 @@
+X001
+Dla celow klasyfikacji taryfowej brzmienie pozycji i uwag do sekcji i dzialow ma znaczenie:
+Nie ma zadnego znaczenia,
+Orientacyjne,
+Prawne,

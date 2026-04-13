@@ -1,0 +1,5 @@
+X010
+Przeszukania pomieszczen mieszkalnych mozna dokonac jezeli istnieja:
+a) podstawy do przypuszczenia ze osoba podejrzana lub przedmiot przestepstwa skarbowego tam sie znajduja
+b) uzasadnione podstawy do przypuszczenia ze osoba podejrzana lub przedmiot przestepstwa skarbowego tam sie znajduja
+c) dostateczne podstawy do przypuszczenia ze sprawca lub przedmiot przestepstwa skarbowego tam sie znajduja

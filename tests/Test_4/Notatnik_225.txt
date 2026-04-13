@@ -1,0 +1,5 @@
+X010
+Jezeli faktura handlowa zostanie zakwestionowana przez organy celne to:
+zadamy od importera nowej faktury,
+ustalamy wartosc celna metodami zastepczymi,
+prosimy importera o wskazanie metody ustalenia wartosci celnej

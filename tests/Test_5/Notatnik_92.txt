@@ -1,0 +1,5 @@
+X010
+Naczelnik UCS w drodze decyzji moze zarzadzic strzezenie towarow, w szczegolnosci gdy :
+a. niemozliwe jest nalozenie zamkniec urzedowych na srodek przewozowy, lub istnieje uzasadnione podejrzenie, ze towar zostanie usuniety spod dozoru,
+b. towar wprowadzony do UE nie moze byc dostarczony do UCS, Miejsca Uznanego, Miejsca Wyznaczonego na skutek dzialania sily wyzszej lub nieprzewidzianych okolicznosci,
+c. kwota ewentualnych naleznosci mogacych powstac w przypadku usuniecia towaru spod dozoru celnego jest wyzsza niz zlozone zabezpieczenie,

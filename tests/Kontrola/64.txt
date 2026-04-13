@@ -1,0 +1,5 @@
+X001
+Rejestr ryzyka to:
+a. dokument nazywany profilem ryzyka
+b. raport z analizy ryzyka
+c. wykaz zidentyfikowanych i uporz¹dkowanych zagro¿eñ przypisanych do okreœlonych obszarów ryzyka

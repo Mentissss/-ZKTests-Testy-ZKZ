@@ -1,0 +1,5 @@
+X100
+Podczas kontroli obrachunkowej znakow akcyzy:
+Oblicza sie strate znakow akcyzy w procesie oznaczenia w stosunku do liczby znakow wykorzystanych w ciagu miesiaca kalendarzowego i porownuje do strat dopuszczalnych
+Oblicza sie strate znakow akcyzy w procesie oznaczenia w stosunku do liczby znakow wykorzystanych w ciagu roku kalendarzowego i porownuje do strat dopuszczalnych
+Oblicza sie jedynie ilosc znakow wydanych do oznaczenia oraz ilosc znakow uszkodzonych, zniszczonych i utraconych w procesie oznaczenia

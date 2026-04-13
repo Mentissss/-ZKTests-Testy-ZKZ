@@ -1,0 +1,5 @@
+X100
+Wyroby akcyzowe podlegajace obowiazkowi oznaczania znakami akcyzy powinny byc prawidlowo oznaczone odpowiednimi podatkowymi znakami akcyzy:
+a. przed zakonczeniem procedury zawieszenia poboru akcyzy.
+b. po przekazaniu do magazynu wyrobow gotowych.
+c. po ich sprzedazy.

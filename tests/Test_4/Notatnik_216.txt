@@ -1,0 +1,5 @@
+X100
+Kiedy miedzy innymi stosujemy zastepcze metody ustalania wartosci celnej?
+gdy nie jest znana wartosc transakcyjna towaru
+gdy znana jest cena faktycznie zaplacona lub nalezna
+na wniosek eksportera

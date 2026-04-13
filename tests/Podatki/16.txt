@@ -1,0 +1,5 @@
+X100
+16.	Co do zasady zobowi¹zanie podatkowe wykazane przez podatnika przedawnia siê :
+a.	z up³ywem 5 lat, licz¹c od koñca roku kalendarzowego, w którym up³yn¹³ termin p³atnoœci podatku
+b.	z up³ywem 5 lat, licz¹c od koñca roku kalendarzowego, w którym up³yn¹³ termin p³atnoœci podatku albo – je¿eli podatek jest rozliczany miesiêcznie – z up³ywem 3 lat licz¹c od koñca miesi¹ca, w którym up³yn¹³ termin p³atnoœci podatku 
+c.	z up³ywem 10 lat, licz¹c od koñca roku, w którym up³yn¹³ termin p³atnoœci podatku

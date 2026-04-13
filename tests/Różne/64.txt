@@ -1,0 +1,5 @@
+X001
+Naczelnik urzêdu celno-skarbowego mo¿e wykonywaæ kontrolê celno-skarbow¹:
+a) wy³¹cznie na obszarze województwa, na terenie którego ma swoj¹ siedzibê,
+b) wy³¹cznie na obszarach województw wskazanych przez Szefa KAS,
+c) na ca³ym terytorium Rzeczypospolitej Polskiej.

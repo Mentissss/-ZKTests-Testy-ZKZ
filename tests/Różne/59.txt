@@ -1,0 +1,5 @@
+X010
+Deklaracje miesiêczne VAT-7 sk³adane s¹ w terminie do:
+a) 20 dnia miesi¹ca nastêpuj¹cego po ka¿dym kolejnym miesi¹cu za okresy miesiêczne,
+b) 25 dnia miesi¹ca nastêpuj¹cego po ka¿dym kolejnym miesi¹cu za okresy miesiêczne,
+c) 15 dnia miesi¹ca nastêpuj¹cego po ka¿dym kolejnym miesi¹cu za okresy miesiêczne.

@@ -1,0 +1,5 @@
+X100
+Jezeli w toku przeszukania, w trakcie postepowania przygotowawczego, uzyto psa sluzbowego: zenia,
+a.  nalezy te czynnosc traktowac jako czesc skladowa przeszukania i uczynic o tym stosowna wzmianke w protokole przeszukania,
+b. protokolu z czynnosci nie sporzadza sie
+c. czynnosci tej nie traktuje sie jako czesci skladowej przeszukania.

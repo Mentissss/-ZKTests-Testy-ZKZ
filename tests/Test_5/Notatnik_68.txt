@@ -1,0 +1,5 @@
+X010
+Z wnioskiem o zatwierdzenie zatrzymania rzeczy nalezy wystapic do prokuratora:
+a. kazdorazowo, gdy nastapilo dobrowolne wydanie rzeczy,
+b. gdy osoba, od ktorej je zatrzymano zlozyla taki wniosek, a organ dzialal we wlasnym zakresie, w wypadku niecierpiacym zwloki,
+c. gdy zatrzymane rzeczy moga stanowic dowod w innej sprawie.

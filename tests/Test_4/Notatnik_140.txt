@@ -1,0 +1,5 @@
+X001
+Zasadniczo organ celny powinien wydac decyzje na wniosek strony:
+a) bezzwlocznie jednak nie pozniej niz w terminie 30 dni od daty przyjecia wniosku,
+b) bezzwlocznie jednak nie pozniej niz w terminie 60 dni od daty przyjecia wniosku,
+c) bezzwlocznie jednak nie pozniej niz w terminie 120 dni od daty przyjecia wniosku.

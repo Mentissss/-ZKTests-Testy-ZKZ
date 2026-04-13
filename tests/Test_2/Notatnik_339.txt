@@ -1,0 +1,5 @@
+X010
+Organ podatkowy zgodnie z Ordynacja podatkowa stwierdza niewaznosc decyzji ostatecznej, gdy:
+a. uzna za zasadne prowadzenie takiego postepowania organ podatkowy.
+b. decyzja zostala wydana bez podstawy prawnej.
+c. wyjda na jaw istotne dla sprawy nowe okolicznosci faktyczne lub nowe dowody istniejace w dniu wydania decyzji nieznane organowi, ktory wydal decyzje.

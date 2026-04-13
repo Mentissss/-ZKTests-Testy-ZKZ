@@ -1,0 +1,5 @@
+X010
+Weryfikacja zg³oszenia celnego przeprowadzana jest:
+a) gdy przedmiotem zg³oszenia s¹ towary o du¿ej wartoœci,
+b) gdy przeprowadzona analiza ryzyka wskazuje zasadnoœæ jego weryfikacji,
+c) ka¿dorazowo.

@@ -1,0 +1,5 @@
+X100
+Prawo do obnizenia kwoty podatku naleznego powstaje:
+a) w rozliczeniu za okres, w ktorym w odniesieniu do nabytych lub importowanych przez podatnika towarow i uslug powstal obowiazek podatkowy albo w rozliczeniu za jeden z dwoch nastepnych okresow rozliczeniowch,
+b) to podatnik decyduje sam w ktorym okresie dokona odliczenia podatku,
+c) gdy dokona zaplaty w wysokosci co najmniej 50% naleznosci dla swojego kontrahenta.

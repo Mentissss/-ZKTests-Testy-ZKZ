@@ -1,0 +1,5 @@
+X100
+Procedura zawieszenia poboru akcyzy to procedura:
+a. stosowana podczas produkcji, magazynowania, przeladowywania i przemieszczania wyrobow akcyzowych, w trakcie ktorej, gdy sa spelnione warunki okreslone w przepisach ustawy o podatku akcyzowym, z obowiazku podatkowego nie powstaje zobowiazanie podatkowe.
+b. wynikajaca z przepisow prawa celnego, podczas ktorej nie powstaje dlug celny.
+c. podczas ktorej mozliwe jest skorzystanie ze zwolnien od akcyzy.

@@ -1,0 +1,5 @@
+X001
+Jakie typy skladow wyrozniamy?
+a) tylko prywatne
+b) tylko publiczne
+c) prywatne i publiczne 

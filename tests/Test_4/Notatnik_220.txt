@@ -1,0 +1,5 @@
+X001
+Wskaz sytuacje powodujaca koniecznosc odrzucenia wartosci transakcyjnej dla potrzeb ustalenia wartosci celnej
+istnieja ograniczenia w dysponowaniu lub uzytkowaniu towarow przez kupujacego, ktore nie maja istotnego wplywu na wartosc towaru,
+istnieje powiazanie pomiedzy sprzedajacym a kupujacym, gdzie zglaszajacy udowodnil, ze powiazanie nie mialo wplywu na wartosc transakcyjna,
+sprzedaz lub cena sa uzaleznione od warunkow lub swiadczen, ktorych wartosc nie moze byc ustalona.

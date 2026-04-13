@@ -1,0 +1,5 @@
+X010
+Oceny  zgodnosci wyrobu (CE)  moze dokonac:
+a. kazdy, kto jest wlascicielem wyrobu,
+b. producent lub upowazniony jego przedstawiciel,
+c. wylacznie producent.

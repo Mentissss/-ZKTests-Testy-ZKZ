@@ -1,0 +1,5 @@
+X010
+Karalnosc wykroczenia ustaje jezeli od czasu jego:
+a) ujawnienia uplynely 2 lata
+b) popelnienia uplynal rok
+c) popelnienia uplynely 3 lata

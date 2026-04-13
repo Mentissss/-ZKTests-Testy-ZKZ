@@ -1,0 +1,5 @@
+X001
+Czy funkcjonariusz Sluzby Celno-Skarbowej maja uprawnienia do zatrzymywania karty kierowcy?
+Tak, ale tylko w przypadku gdy nie ma mozliwosci aby zrobil o inny uprawniony organ
+Tak
+Nie

@@ -1,0 +1,5 @@
+X010
+Kto ma obowiazek zgodnie z ustawa o SENT niezwlocznie aktualizowac dane zawarte w zgloszeniu?
+Zawsze przewoznik, ktory realizuje przewoz
+Podmiot wysylajacy, podmiot odbierajacy, przewoznik, podmiot sprzedajacy oraz podmiot nabycia w takim zakresie, w jakim byli obowiazani do ich zgloszenia
+Kazdy uczestnik procesu, ktory uzyskal informacje o zmianie danych niezaleznie od tego czy byl zobowiazany do ich zgloszenia

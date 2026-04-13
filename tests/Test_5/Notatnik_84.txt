@@ -1,0 +1,5 @@
+X010
+Protokolu z kontroli celno skarbowej nie sporzadza sie co do zasady w przypadku :
+a. pobierania probek towarow i wyrobow
+b. niewykrycia nieprawidlowosci
+c. niewykrycia nieprawidlowosci, jednak kontrolowany zada potwierdzenia faktu poddania go kontroli

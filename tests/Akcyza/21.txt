@@ -1,0 +1,5 @@
+X100
+Podatnikiem podatku akcyzowego jest::
+• spó³ka cywilna,
+• wspólnicy spó³ki cywilnej,
+• jeden ze wspólników spó³ki cywilnej.
