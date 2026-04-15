@@ -3,13 +3,16 @@ const state = {
     questions: [],
     selectedFolder: null,
     currentQuestionIndex: 0,
-    score: 0
+    score: 0,
+    results: [],          // per-question results for summary
+    pendingFolderId: null // folder waiting for continue/fresh decision
 };
 
 const elements = {
     setup: document.getElementById('setup'),
     quiz: document.getElementById('quiz'),
     endScreen: document.getElementById('endScreen'),
+    continueScreen: document.getElementById('continueScreen'),
     folderGrid: document.getElementById('folderGrid'),
     loadingMsg: document.getElementById('loadingMsg'),
     errorMsg: document.getElementById('errorMsg'),
@@ -23,9 +26,28 @@ const elements = {
     backToListBtn: document.getElementById('backToListBtn'),
     retryBtn: document.getElementById('retryBtn'),
     restartBtn: document.getElementById('restartBtn'),
+    restartQuizBtn: document.getElementById('restartQuizBtn'),
     finalScore: document.getElementById('finalScore'),
     finalTotal: document.getElementById('finalTotal'),
-    endSummary: document.getElementById('endSummary')
+    endSummary: document.getElementById('endSummary'),
+    resultsList: document.getElementById('resultsList'),
+    continueBtn: document.getElementById('continueBtn'),
+    freshStartBtn: document.getElementById('freshStartBtn'),
+    cancelContinueBtn: document.getElementById('cancelContinueBtn'),
+    continueInfo: document.getElementById('continueInfo'),
+    ttsBtn: document.getElementById('ttsBtn'),
+    ttsVoiceSelect: document.getElementById('ttsVoiceSelect'),
+    ttsPreviewBtn: document.getElementById('ttsPreviewBtn'),
+    ttsSettingsBtn: document.getElementById('ttsSettingsBtn'),
+    voiceModal: document.getElementById('voiceModal'),
+    voiceModalClose: document.getElementById('voiceModalClose'),
+    elevenlabsKey: document.getElementById('elevenlabsKey'),
+    elevenlabsVoiceId: document.getElementById('elevenlabsVoiceId'),
+    useElevenlabs: document.getElementById('useElevenlabs'),
+    testElevenlabsBtn: document.getElementById('testElevenlabsBtn'),
+    saveVoiceSettingsBtn: document.getElementById('saveVoiceSettingsBtn'),
+    voiceStatusMsg: document.getElementById('voiceStatusMsg'),
+    voiceCountInfo: document.getElementById('voiceCountInfo')
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -34,6 +56,25 @@ elements.nextBtn.addEventListener('click', goToNextQuestion);
 elements.backToListBtn.addEventListener('click', showSetupScreen);
 elements.retryBtn.addEventListener('click', retrySelectedTest);
 elements.restartBtn.addEventListener('click', showSetupScreen);
+elements.restartQuizBtn.addEventListener('click', () => {
+    if (state.selectedFolder) startFreshQuiz(state.selectedFolder.id);
+});
+elements.continueBtn.addEventListener('click', onContinueSession);
+elements.freshStartBtn.addEventListener('click', () => {
+    if (state.pendingFolderId) startFreshQuiz(state.pendingFolderId);
+});
+elements.cancelContinueBtn.addEventListener('click', showSetupScreen);
+elements.ttsBtn.addEventListener('click', toggleTTS);
+elements.ttsVoiceSelect.addEventListener('change', () => {
+    localStorage.setItem(TTS_VOICE_KEY, elements.ttsVoiceSelect.value);
+    stopTTS();
+});
+elements.ttsPreviewBtn.addEventListener('click', previewVoice);
+elements.ttsSettingsBtn.addEventListener('click', openVoiceSettings);
+elements.voiceModalClose.addEventListener('click', closeVoiceSettings);
+elements.voiceModal.querySelector('.pdf-modal__backdrop').addEventListener('click', closeVoiceSettings);
+elements.saveVoiceSettingsBtn.addEventListener('click', saveVoiceSettings);
+elements.testElevenlabsBtn.addEventListener('click', testElevenLabs);
 
 // ── PDF modal ──────────────────────────────────────────
 const pdfModal      = document.getElementById('pdfModal');
@@ -353,35 +394,366 @@ function renderExternalLinks() {
     });
 }
 
-function startQuiz(folderId) {
-    const folder = state.manifest.folders.find((item) => item.id === folderId);
+// ── Session persistence ────────────────────────────────
+function sessionKey(folderId) { return `zktest_v1_${folderId}`; }
 
-    if (!folder) {
-        showError('Nie znaleziono wybranego testu.');
+function saveSession() {
+    if (!state.selectedFolder) return;
+    try {
+        localStorage.setItem(sessionKey(state.selectedFolder.id), JSON.stringify({
+            folderId: state.selectedFolder.id,
+            questions: state.questions,
+            currentQuestionIndex: state.currentQuestionIndex,
+            score: state.score,
+            results: state.results
+        }));
+    } catch (_) { /* ignore quota errors */ }
+}
+
+function loadSession(folderId) {
+    try {
+        const raw = localStorage.getItem(sessionKey(folderId));
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+
+function clearSession(folderId) {
+    localStorage.removeItem(sessionKey(folderId));
+}
+
+// ── TTS ────────────────────────────────────────────────
+let ttsVoices = [];
+let ttsSpeaking = false;
+const TTS_VOICE_KEY = 'zktest_tts_voice';
+
+function voiceQualityScore(v) {
+    const name = v.name.toLowerCase();
+    // Neural / natural voices (Microsoft Edge) — highest quality
+    if (/natural/.test(name))  return 100;
+    if (/neural/.test(name))   return 95;
+    if (/online/.test(name))   return 85;
+    // Google voices (Chrome) — decent
+    if (/google/.test(name))   return 70;
+    // Named Polish voices
+    if (/zofia|marek|agnieszka|krzysztof/.test(name)) return 60;
+    // Avoid Paulina (the “Iwonka” robotic one)
+    if (/paulina/.test(name))  return 10;
+    return 30;
+}
+
+function getAllPolishVoices() {
+    return ttsVoices
+        .filter((v) => v.lang.startsWith('pl'))
+        .sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a));
+}
+
+function formatVoiceLabel(v) {
+    const score = voiceQualityScore(v);
+    const prefix = score >= 95 ? '⭐ ' : score >= 70 ? '✓ ' : '';
+    return `${prefix}${v.name}`;
+}
+
+function populateVoiceSelect() {
+    const sel = elements.ttsVoiceSelect;
+    if (!sel) return;
+    const voices = getAllPolishVoices();
+    const saved = localStorage.getItem(TTS_VOICE_KEY);
+
+    sel.innerHTML = '';
+
+    if (voices.length === 0) {
+        const opt = document.createElement('option');
+        opt.textContent = 'Brak głosów PL';
+        opt.disabled = true;
+        sel.appendChild(opt);
         return;
     }
 
+    voices.forEach((v) => {
+        const opt = document.createElement('option');
+        opt.value = v.name;
+        opt.textContent = formatVoiceLabel(v);
+        sel.appendChild(opt);
+    });
+
+    // Restore saved selection, or default to best voice
+    if (saved && voices.some((v) => v.name === saved)) {
+        sel.value = saved;
+    } else {
+        sel.value = voices[0].name; // highest-scored
+    }
+}
+
+function getSelectedVoice() {
+    const name = elements.ttsVoiceSelect && elements.ttsVoiceSelect.value;
+    return ttsVoices.find((v) => v.name === name) || getAllPolishVoices()[0] || null;
+}
+
+if ('speechSynthesis' in window) {
+    ttsVoices = speechSynthesis.getVoices();
+    if (ttsVoices.length > 0) populateVoiceSelect();
+    speechSynthesis.addEventListener('voiceschanged', () => {
+        ttsVoices = speechSynthesis.getVoices();
+        populateVoiceSelect();
+    });
+}
+
+// ── ElevenLabs config ──────────────────────────────────
+const ELEVENLABS_KEY       = 'zktest_11labs_key';
+const ELEVENLABS_VOICE_ID  = 'zktest_11labs_voice';
+const ELEVENLABS_ENABLED   = 'zktest_11labs_enabled';
+const DEFAULT_11L_VOICE    = '21m00Tcm4TlvDq8ikWAM'; // Rachel
+let   currentAudio         = null;
+
+function isElevenLabsEnabled() {
+    return localStorage.getItem(ELEVENLABS_ENABLED) === '1'
+        && !!localStorage.getItem(ELEVENLABS_KEY);
+}
+
+async function speakElevenLabs(text) {
+    const key     = localStorage.getItem(ELEVENLABS_KEY);
+    const voiceId = localStorage.getItem(ELEVENLABS_VOICE_ID) || DEFAULT_11L_VOICE;
+
+    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: 'POST',
+        headers: {
+            'Accept':        'audio/mpeg',
+            'Content-Type':  'application/json',
+            'xi-api-key':    key
+        },
+        body: JSON.stringify({
+            text,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.2 }
+        })
+    });
+
+    if (!res.ok) throw new Error(`ElevenLabs API: ${res.status} ${res.statusText}`);
+
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.onended = () => { setTTSState(false); URL.revokeObjectURL(url); currentAudio = null; };
+    audio.onerror = () => { setTTSState(false); currentAudio = null; };
+    currentAudio = audio;
+    await audio.play();
+}
+
+function speakBrowser(text) {
+    const utt = new SpeechSynthesisUtterance(text);
+    utt.lang = 'pl-PL';
+    utt.rate = 0.95;
+    utt.pitch = 1.0;
+    const voice = getSelectedVoice();
+    if (voice) utt.voice = voice;
+    utt.onend = () => setTTSState(false);
+    utt.onerror = () => setTTSState(false);
+    speechSynthesis.speak(utt);
+}
+
+function buildQuestionText(question) {
+    const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
+    const qText = question.questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+    const optsText = question.options.map((o, i) => `${letters[i]}... ${o}`).join('. ');
+    return `${qText}. ${optsText}.`;
+}
+
+async function toggleTTS() {
+    if (ttsSpeaking) { stopTTS(); return; }
+    const question = state.questions[state.currentQuestionIndex];
+    if (!question) return;
+
+    const text = buildQuestionText(question);
+    setTTSState(true);
+
+    try {
+        if (isElevenLabsEnabled()) {
+            await speakElevenLabs(text);
+        } else if ('speechSynthesis' in window) {
+            speakBrowser(text);
+        }
+    } catch (err) {
+        console.error('TTS error:', err);
+        alert('Błąd odtwarzania głosu: ' + err.message);
+        setTTSState(false);
+    }
+}
+
+function setTTSState(speaking) {
+    ttsSpeaking = speaking;
+    elements.ttsBtn.classList.toggle('btn-tts--active', speaking);
+    elements.ttsBtn.title = speaking ? 'Zatrzymaj' : 'Przeczytaj pytanie';
+}
+
+function stopTTS() {
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    setTTSState(false);
+}
+
+// ── Preview & Settings ─────────────────────────────────
+const PREVIEW_TEXT = 'Witaj! To jest próbka głosu. Sprawdź czy brzmi naturalnie i odpowiada Twoim preferencjom.';
+
+async function previewVoice() {
+    stopTTS();
+    setTTSState(true);
+    try {
+        if (isElevenLabsEnabled()) {
+            await speakElevenLabs(PREVIEW_TEXT);
+        } else {
+            speakBrowser(PREVIEW_TEXT);
+        }
+    } catch (err) {
+        alert('Błąd podglądu: ' + err.message);
+        setTTSState(false);
+    }
+}
+
+function openVoiceSettings() {
+    elements.elevenlabsKey.value     = localStorage.getItem(ELEVENLABS_KEY) || '';
+    elements.elevenlabsVoiceId.value = localStorage.getItem(ELEVENLABS_VOICE_ID) || '';
+    elements.useElevenlabs.checked   = isElevenLabsEnabled();
+    elements.voiceStatusMsg.textContent = '';
+    elements.voiceStatusMsg.className = 'voice-status';
+
+    const plCount = getAllPolishVoices().length;
+    elements.voiceCountInfo.textContent = plCount > 0
+        ? `${plCount} ${plCount === 1 ? 'głos' : plCount < 5 ? 'głosy' : 'głosów'}`
+        : 'brak';
+
+    elements.voiceModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeVoiceSettings() {
+    elements.voiceModal.classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+function saveVoiceSettings() {
+    const key     = elements.elevenlabsKey.value.trim();
+    const voiceId = elements.elevenlabsVoiceId.value.trim();
+    const enable  = elements.useElevenlabs.checked;
+
+    if (key) localStorage.setItem(ELEVENLABS_KEY, key);
+    else     localStorage.removeItem(ELEVENLABS_KEY);
+
+    if (voiceId) localStorage.setItem(ELEVENLABS_VOICE_ID, voiceId);
+    else         localStorage.removeItem(ELEVENLABS_VOICE_ID);
+
+    if (enable && key) localStorage.setItem(ELEVENLABS_ENABLED, '1');
+    else               localStorage.removeItem(ELEVENLABS_ENABLED);
+
+    elements.voiceStatusMsg.textContent = '✓ Zapisano';
+    elements.voiceStatusMsg.className = 'voice-status voice-status--ok';
+}
+
+async function testElevenLabs() {
+    const key     = elements.elevenlabsKey.value.trim();
+    const voiceId = elements.elevenlabsVoiceId.value.trim() || DEFAULT_11L_VOICE;
+
+    if (!key) {
+        elements.voiceStatusMsg.textContent = '✗ Wpisz API key';
+        elements.voiceStatusMsg.className = 'voice-status voice-status--err';
+        return;
+    }
+
+    elements.voiceStatusMsg.textContent = '⏳ Łączę z ElevenLabs...';
+    elements.voiceStatusMsg.className = 'voice-status';
+
+    try {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+            method: 'POST',
+            headers: {
+                'Accept':       'audio/mpeg',
+                'Content-Type': 'application/json',
+                'xi-api-key':   key
+            },
+            body: JSON.stringify({
+                text: PREVIEW_TEXT,
+                model_id: 'eleven_multilingual_v2',
+                voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.2 }
+            })
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`${res.status}: ${errText.slice(0, 150)}`);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play();
+        audio.onended = () => URL.revokeObjectURL(url);
+
+        elements.voiceStatusMsg.textContent = '✓ Działa! Jeśli Ci odpowiada, zaznacz "Używaj ElevenLabs" i zapisz.';
+        elements.voiceStatusMsg.className = 'voice-status voice-status--ok';
+    } catch (err) {
+        elements.voiceStatusMsg.textContent = '✗ ' + err.message;
+        elements.voiceStatusMsg.className = 'voice-status voice-status--err';
+    }
+}
+
+// ── Quiz start ─────────────────────────────────────────
+function startQuiz(folderId) {
+    const saved = loadSession(folderId);
+    if (saved && saved.currentQuestionIndex < saved.questions.length) {
+        state.pendingFolderId = folderId;
+        elements.continueInfo.textContent =
+            `Pytanie ${saved.currentQuestionIndex + 1} / ${saved.questions.length} · Poprawne: ${saved.score}`;
+        showContinueScreen();
+        return;
+    }
+    startFreshQuiz(folderId);
+}
+
+function onContinueSession() {
+    const folderId = state.pendingFolderId;
+    if (!folderId) return;
+    const saved = loadSession(folderId);
+    if (!saved) { startFreshQuiz(folderId); return; }
+
+    const folder = state.manifest.folders.find((f) => f.id === folderId);
+    if (!folder) return;
+
+    state.selectedFolder = folder;
+    state.questions = saved.questions;
+    state.currentQuestionIndex = saved.currentQuestionIndex;
+    state.score = saved.score;
+    state.results = saved.results || [];
+    state.pendingFolderId = null;
+
+    elements.selectedTestName.textContent = folder.title;
+    showQuizScreen();
+    showQuestion();
+}
+
+function startFreshQuiz(folderId) {
+    const folder = state.manifest.folders.find((item) => item.id === folderId);
+    if (!folder) { showError('Nie znaleziono wybranego testu.'); return; }
+
+    clearSession(folderId);
     setStatus(`Otwieranie testu „${folder.title}”...`);
     hideError();
 
     try {
         const questions = loadQuestions(folder);
-
-        if (questions.length === 0) {
-            throw new Error('Brak poprawnie wczytanych pytań.');
-        }
+        if (questions.length === 0) throw new Error('Brak pytań.');
 
         state.selectedFolder = folder;
         state.questions = shuffleArray(questions);
         state.currentQuestionIndex = 0;
         state.score = 0;
+        state.results = [];
+        state.pendingFolderId = null;
 
         elements.selectedTestName.textContent = folder.title;
         showQuizScreen();
         showQuestion();
     } catch (error) {
-        console.error(`Nie udało się przygotować testu ${folder.title}:`, error);
-        showError(`Nie udało się otworzyć testu „${folder.title}”. Sprawdź, czy plik tests/tests-data.js został poprawnie wygenerowany.`);
+        console.error(error);
+        showError(`Nie udało się otworzyć testu „${folder.title}”.`);
     } finally {
         setStatus('');
     }
@@ -529,6 +901,7 @@ function stripOptionPrefix(line) {
 }
 
 function showQuestion() {
+    stopTTS();
     const question = state.questions[state.currentQuestionIndex];
 
     elements.progressText.textContent = `Pytanie: ${state.currentQuestionIndex + 1} / ${state.questions.length}`;
@@ -562,17 +935,13 @@ function checkAnswer() {
     const inputs = document.querySelectorAll('.answer-input');
     let isPerfect = true;
     let anythingChecked = false;
+    const selectedIndexes = [];
 
     inputs.forEach((input, index) => {
         const isChecked = input.checked;
         const isCorrect = question.correctIndexes.includes(index);
-
-        if (isChecked) {
-            anythingChecked = true;
-        }
-
+        if (isChecked) { anythingChecked = true; selectedIndexes.push(index); }
         input.disabled = true;
-
         if (isChecked && isCorrect) {
             input.parentElement.classList.add('correct');
         } else if (isChecked && !isCorrect) {
@@ -586,9 +955,7 @@ function checkAnswer() {
 
     if (!anythingChecked) {
         alert('Zaznacz chociaż jedną odpowiedź przed sprawdzeniem.');
-        inputs.forEach((input) => {
-            input.disabled = false;
-        });
+        inputs.forEach((input) => { input.disabled = false; });
         return;
     }
 
@@ -597,60 +964,126 @@ function checkAnswer() {
         elements.scoreText.textContent = `Poprawne: ${state.score}`;
     }
 
+    // Record result for summary
+    state.results.push({
+        questionIndex: state.currentQuestionIndex,
+        correct: isPerfect,
+        selectedIndexes,
+        correctIndexes: question.correctIndexes,
+        questionText: question.questionText,
+        options: question.options
+    });
+
+    saveSession();
     elements.checkBtn.classList.add('hidden');
     elements.nextBtn.classList.remove('hidden');
 }
 
 function goToNextQuestion() {
     state.currentQuestionIndex += 1;
+    saveSession();
 
     if (state.currentQuestionIndex < state.questions.length) {
         showQuestion();
         return;
     }
 
+    // Done — clear session and show summary
+    clearSession(state.selectedFolder.id);
     elements.finalScore.textContent = state.score;
     elements.finalTotal.textContent = state.questions.length;
-    elements.endSummary.textContent = `Przerobiłeś wszystkie pytania z testu „${state.selectedFolder.title}”.`;
-
+    elements.endSummary.textContent = `${state.selectedFolder.title} · ${state.score} / ${state.questions.length} poprawnych`;
+    renderSummary();
     showEndScreen();
 }
 
-function retrySelectedTest() {
-    if (!state.selectedFolder) {
-        showSetupScreen();
-        return;
-    }
+function renderSummary() {
+    const list = elements.resultsList;
+    list.innerHTML = '';
+    const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
 
-    startQuiz(state.selectedFolder.id);
+    state.results.forEach((res, i) => {
+        const item = document.createElement('div');
+        item.className = `result-item ${res.correct ? 'result-item--ok' : 'result-item--fail'}`;
+
+        // Header row
+        const header = document.createElement('div');
+        header.className = 'result-item__header';
+
+        const badge = document.createElement('span');
+        badge.className = 'result-item__badge';
+        badge.textContent = res.correct ? '✓' : '✗';
+
+        const num = document.createElement('span');
+        num.className = 'result-item__num';
+        num.textContent = `Pytanie ${i + 1}`;
+
+        const qtext = document.createElement('span');
+        qtext.className = 'result-item__question';
+        qtext.innerHTML = res.questionText.replace(/<br>/g, ' ');
+
+        header.appendChild(badge);
+        header.appendChild(num);
+        header.appendChild(qtext);
+        item.appendChild(header);
+
+        // Options (only for incorrect)
+        if (!res.correct) {
+            const opts = document.createElement('div');
+            opts.className = 'result-item__options';
+            res.options.forEach((opt, oi) => {
+                const row = document.createElement('div');
+                const isCorrect = res.correctIndexes.includes(oi);
+                const wasSelected = res.selectedIndexes.includes(oi);
+                row.className = 'result-opt' +
+                    (isCorrect ? ' result-opt--correct' : '') +
+                    (wasSelected && !isCorrect ? ' result-opt--wrong' : '');
+                row.textContent = `${letters[oi]}) ${opt}`;
+                opts.appendChild(row);
+            });
+            item.appendChild(opts);
+        }
+
+        list.appendChild(item);
+    });
 }
 
-const materialsSection    = document.getElementById('materials');
+function retrySelectedTest() {
+    if (!state.selectedFolder) { showSetupScreen(); return; }
+    startFreshQuiz(state.selectedFolder.id);
+}
+
+const materialsSection     = document.getElementById('materials');
 const externalLinksSection = document.getElementById('externalLinksSection');
 
+const ALL_SCREENS = () => [
+    elements.setup, elements.quiz, elements.endScreen,
+    elements.continueScreen, materialsSection, externalLinksSection
+];
+
 function showSetupScreen() {
+    stopTTS();
+    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
     elements.setup.classList.remove('hidden');
-    elements.quiz.classList.add('hidden');
-    elements.endScreen.classList.add('hidden');
-    elements.selectedTestName.textContent = '';
     materialsSection.classList.remove('hidden');
     externalLinksSection.classList.remove('hidden');
+    elements.selectedTestName.textContent = '';
+}
+
+function showContinueScreen() {
+    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
+    elements.continueScreen.classList.remove('hidden');
 }
 
 function showQuizScreen() {
-    elements.setup.classList.add('hidden');
+    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
     elements.quiz.classList.remove('hidden');
-    elements.endScreen.classList.add('hidden');
-    materialsSection.classList.add('hidden');
-    externalLinksSection.classList.add('hidden');
 }
 
 function showEndScreen() {
-    elements.setup.classList.add('hidden');
-    elements.quiz.classList.add('hidden');
+    stopTTS();
+    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
     elements.endScreen.classList.remove('hidden');
-    materialsSection.classList.add('hidden');
-    externalLinksSection.classList.add('hidden');
 }
 
 function setStatus(message) {
