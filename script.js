@@ -14,6 +14,7 @@ const elements = {
     endScreen: document.getElementById('endScreen'),
     continueScreen: document.getElementById('continueScreen'),
     folderGrid: document.getElementById('folderGrid'),
+    specialFolderGrid: document.getElementById('specialFolderGrid'), // DODANE: Nowy grid na testy
     loadingMsg: document.getElementById('loadingMsg'),
     errorMsg: document.getElementById('errorMsg'),
     selectedTestName: document.getElementById('selectedTestName'),
@@ -37,17 +38,7 @@ const elements = {
     continueInfo: document.getElementById('continueInfo'),
     ttsBtn: document.getElementById('ttsBtn'),
     ttsVoiceSelect: document.getElementById('ttsVoiceSelect'),
-    ttsPreviewBtn: document.getElementById('ttsPreviewBtn'),
-    ttsSettingsBtn: document.getElementById('ttsSettingsBtn'),
-    voiceModal: document.getElementById('voiceModal'),
-    voiceModalClose: document.getElementById('voiceModalClose'),
-    elevenlabsKey: document.getElementById('elevenlabsKey'),
-    elevenlabsVoiceId: document.getElementById('elevenlabsVoiceId'),
-    useElevenlabs: document.getElementById('useElevenlabs'),
-    testElevenlabsBtn: document.getElementById('testElevenlabsBtn'),
-    saveVoiceSettingsBtn: document.getElementById('saveVoiceSettingsBtn'),
-    voiceStatusMsg: document.getElementById('voiceStatusMsg'),
-    voiceCountInfo: document.getElementById('voiceCountInfo')
+    ttsPreviewBtn: document.getElementById('ttsPreviewBtn')
 };
 
 document.addEventListener('DOMContentLoaded', init);
@@ -70,11 +61,6 @@ elements.ttsVoiceSelect.addEventListener('change', () => {
     stopTTS();
 });
 elements.ttsPreviewBtn.addEventListener('click', previewVoice);
-elements.ttsSettingsBtn.addEventListener('click', openVoiceSettings);
-elements.voiceModalClose.addEventListener('click', closeVoiceSettings);
-elements.voiceModal.querySelector('.pdf-modal__backdrop').addEventListener('click', closeVoiceSettings);
-elements.saveVoiceSettingsBtn.addEventListener('click', saveVoiceSettings);
-elements.testElevenlabsBtn.addEventListener('click', testElevenLabs);
 
 // ── PDF modal ──────────────────────────────────────────
 const pdfModal      = document.getElementById('pdfModal');
@@ -107,15 +93,72 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
+// ── DODANE: DANE TESTÓW SPECJALNYCH ────────────────────
+const SPECIAL_TESTS_DATA = [
+    {
+        id: 'sp_procedury',
+        title: 'Procedury celne',
+        files: [{
+            name: 'Procedury celne.txt',
+            content: `1. W Polsce procedura odwoławcza została określona w:\nPrawie Celnym przez odwołanie do odpowiednich przepisów Ordynacji Podatkowej;\nKodeksie Postępowania Administracyjnego;\nPrawie Administracyjnym.\nX100\n\n2. Decyzje „z urzędu” są wydawane:\nNa wniosek zgłaszającego;\nBez uprzedniego wniosku osoby zainteresowanej;\nZarówno na wniosek jak i bez uprzedniego wniosku osoby zainteresowanej.\nX010\n\n3. Decyzja niekorzystna to:\nDecyzja wydawana na wniosek w pełni go uwzględniająca;\nTylko i wyłącznie decyzja wydana z urzędu\nDecyzja wydana na wniosek nie w pełni go uwzględniająca\nX001\n\n4. Organ celny, wszczynając postępowanie z urzędu:\nWydaje postanowienie o wszczęciu postępowania\nWydaje powiadomienie o wszczęciu postępowania\nNie wydaje żadnego odrębnego aktu administracyjnego o wszczęciu postępowania\nX001\n\n5. Odwołanie od decyzji przysługuje:\nTylko w przypadku decyzji niekorzystnych;\nNiezależnie od rodzaju wydanego rozstrzygnięcia;\nWyłącznie przypadku decyzji wydawanych „na wniosek zainteresowanego”\nX010\n\n6. Przed wydaniem decyzji niekorzystnej organy celne dają wnioskodawcy możliwość przedstawienia stanowiska w terminie:\n14 dni;\n7 dni;\n30 dni.\nX001\n\n7. Odwołanie od decyzji składa się:\nw każdym państwie członkowskim UE;\nw państwie członkowskim, w którym decyzja została wydana\njedynie w Brukseli.\nX010\n\n8. Wydanie decyzji i powiadomienie o niej winno nastąpić w terminie:\n120 dni od daty przyjęcia wniosku;\n30 dni od daty przyjęcia wniosku;\n90 ,dni od daty przyjęcia wniosku.\nX100\n\n9. Publiczna usługa hybrydowa w zakresie doręczeń\njest realizowana prze InPost;\njest realizowana przez Pocztę Polska;\njest aktualnie niedostępna.\nX010\n\n10. Podstawowa forma doręczeń to:\nDoręczenie korespondencji na adres elektroniczny\nDoręczenie w ramach publicznej usługi hybrydowej\nDoręczenie przez awizo.\nX100\n\n11. Niedopełnienie obowiązku zgłoszenia przywozu do Polski środków pieniężnych\nNie podlega żadnej karze;\nPodlega karze grzywny za przestępstwo lub wykroczenie skarbowe;\nPodlega karze ograniczenia wolności.\nX010\n\n12. Decyzja zaczyna obowiązywać:\nZ dniem jej doręczenia lub uznania za doręczoną;\nPo 14 dniach od doręczenia;\nCo do zasady po 30 dniach.\nX100\n\n13. Odwołanie o decyzji w zakresie prawa celnego wnosi się:\nW terminie 30 dni od doręczenia jej stronie;\nW terminie 14 dni od doręczenia jej stronie;\nW terminie 7 dni od doręczenia jej stronie\nX010\n\n14. W Polsce do postępowania w sprawach celnych stosuje się przepisy:\nUstawy Ordynacja podatkowa;\nUstawy Kodeks Postępowania Administracyjnego;\nTylko i wyłącznie Unijnego Kodeksu Celnego\nX100`
+        }]
+    },
+    {
+        id: 'sp_pochodzenie',
+        title: 'Pochodzenie towarów',
+        files: [{
+            name: 'Pochodzenie towarów.txt',
+            content: `1. Pochodzenie towaru udokumentowane poprzez przedstawienie niepreferencyjnego świadectwa pochodzenia pozwala:\nSkorzystać z obniżonej stawki celnej\nSkorzystać z zerowej stawki celnej\nZastosować stawkę celną „erga omnes”.\nX001\n\n2. Strefy wolnego handlu pozwalają na:\nZastosowanie preferencji wynikających ze wzajemnych umów handlowych\nZastosowanie preferencji wynikających z jednostronnych uzgodnień UE\nZastosowanie preferencji na podstawie świadectwa ATR.\nX100\n\n3. Preferencje wynikające z unii celnej oparte są na:\nPochodzeniu towarów\nStatusie celnym towarów\nPochodzeniu i statusie celnym\nX010\n\n4. Ważność świadectwa ATR wynosi:\n4 miesiące\n90 dni\n2 lata\nX100\n\n5. UE zawarła unię celną z:\nTurcją, Andorą i San Marino\nJedynie z Turcją\nTurcją i Szwajcarią\nX100\n\n6. Upoważniony eksporter:\nSporządza deklarację pochodzenia, tylko wtedy gdy wartość towaru przekracza 4000 EUR;\nNie jest związany żadnym limitem wartości produktów pochodzących\nSporządza deklarację o pochodzeniu niepreferencyjnym.\nX010\n\n7. Ogólne zasady pochodzenia preferencyjnego obejmują:\nZasadę bezpośredniego transportu, tożsamości, terytorialności i dokumentowania pochodzenia\nTylko zasadę bezpośredniego transportu i terytorialności\nJedynie zasadę dokumentowania i tożsamości.\nX100\n\n8. REX to :\nsystem zarejestrowanych eksporterów min. w ramach Ogólnego Systemu Preferencji (GSP)\nskrót dot. zasady bezpośredniego transportu\nprodukty całkowicie uzyskane\nX100\n\n9. Świadectwo o niemaniplulowaniu towarem:\nsłuży potwierdzeniu zachowania dozoru celnego dla towarów transportowanych między stronami umowy o wolnym handlu\ndokumentuje preferencyjne pochodzenie towaru\npotwierdza status celny towaru.\nX100\n\n10. „Wystarczające przetwarzanie lub obróbka” to procesy, którym poddawane są:\ntowary unijne by uzyskać status nieunijnych\ntowary niepochodzące by uzyskać status pochodzących\ntowary z krajów trzecich by uzyskać status unijny\nX010\n\n11. EUR 1, EUR-MED to dowody pochodzenia stosowane:\nw GSP\nW strefach wolnego handlu\nW unii celnej\nX010\n\n12. Preferencje jednostronne (GSP) przyznawane są:\nJedynie krajom Afryki\nKrajom rozwijającym się i najsłabiej rozwiniętym\nTurcji, San Marino i Andorze\nX010\n\n13. Umowy o wolnym handlu:\nTo negocjowany, wzajemny system preferencji\nTo przyznawany system preferencji jednostronnych\nOpierają się na unii celnej\nX100\n\n14. Stawka celna stosowana w oparciu o KNU to:\nStawka celna konwencyjna\nStawka celna preferencyjna\nStawka celna obniżona\nX100\n\n15. WIP w Polsce wydaje:\nKażdy NUCS\nDyrektor Krajowej Informacji Skarbowej\nMinister Finansów\nX010\n\n16. Deklaracja o pochodzeniu towaru może być wystawiona :\nJedynie przez upoważnionego eksportera\nTylko i wyłącznie przez nieupoważnionego eksportera\nZarówno przez upoważnionego jak i przez nieupoważnionego eksportera\nX001`
+        }]
+    },
+    {
+        id: 'sp_taryfa',
+        title: 'Nomenklatura taryfowa',
+        files: [{
+            name: 'Nomenklatura taryfowa.txt',
+            content: `1. Nomenklatura taryfowa zbudowana jest z:\na) Stawek celnych, wykazu alfabetycznego towarów,\nb) Tylko wykazu alfabetycznego towarów,\nc) Sekcji, działów, pozycji i podpozycji.\nX001\n\n2. Pozycja HS jest określona na poziomie:\na) 4 cyfr,\nb) 6 cyfr,\nc) 10 cyfr.\nX100\n\n3. Oznaczenie AD F/M oznacza we Wspólnej Taryfie Celnej:\na) Dodatkowe cło za cukier,\nb) Dodatkowe cło za mąkę;\nc) Dodatkowe cło za alkohol.\nX010\n\n4. Skrót CN oznacza:\na) Nomenklatura Scalona,\nb) System Zharmonizowany,\nc) Ogólne Reguły Interpretacji Nomenklatury Scalonej.\nX100\n\n5. Dla towaru, o wartości poniżej 700 EUR, o charakterze niehandlowym, przewożonego w bagażu podróżnego stosuje się:\na) Stawkę celną procentową w zależności od kodu towaru;\nb) Ryczałtową stawkę celną w wysokości 2,5 % od wartości\nc) Stawkę celną kwotowa w zależności od masy towaru.\nX010\n\n6. WIT to decyzja organu celnego dot. taryfikacji wydawana w Polsce przez:\na) Dyrektorów Izby Administracji Skarbowej;\nb) Naczelników Urzędów Celno-Skarbowych;\nc) Dyrektora Krajowej Informacji Skarbowej.\nX001\n\n7. Dodatkowe cło za cukier we Wspólnej Taryfie Celnej jest oznaczone skrótem:\na) EA\nb) AD S/Z\nc) AD F/M.\nX010\n\n8. Futerał na broń (pistolet), przewożony wraz z tym pistoletem, nadający się do długotrwałego użytkowania klasyfikuje się:\na) Jako opakowanie jednorazowego użytku;\nb) Wraz z towarem, do pozycji dla pistoletów;\nc) Zgodnie z regułą reguła ORINS 5B.\nX010\n\n9. Reguła 5 ORINS służy do:\na) Klasyfikacji opakowań przewożonych wraz z towarem\nb) Klasyfikacji towaru do odpowiednich podpozycji CN;\nc) Klasyfikacji mieszanin.\nX100\n\n10. Wyroby niegotowe, mające zasadniczy charakter wyrobu gotowego klasyfikuje się zgodnie z :\na) 2a ORINS;\nb) 4 ORINS;\nc) 6 ORINS.\nX100\n\n11. Nomenklatura taryfowa dzieli się na:\na) 5 sekcji;\nb) 21 sekcji;\nc) 99 sekcji.\nX010\n\n12. Do specjalnego użytku przez właściwe organy unijne zarezerwowany jest:\na) Dział 77;\nb) Dział 98 i 99\nc) Dział 102.\nX010\n\n13. Kod CN jest określany przez:\na) 4 cyfry, gdzie dwie pierwsze cyfry to numer działu;\nb) 8 cyfr ;\nc) 2 cyfry, które odnoszą się do numeru działu\nX010\n\n14. Załącznik I do Rozp. Rady 2658/87:\na) Jest publikowany corocznie, nie później niż do 31 października danego roku\nb) Jest aktualizowany raz na 10 lat;\nc) Nie podlega corocznym przeglądom ani aktualizacji.\nX100\n\n15. Element rolny w Taryfie Celnej określany jest:\na) HS\nb) CN\nc) EA.\nX001\n\n16. Tytuły sekcji, działów, poddziałów, przy klasyfikacji towarów mają znaczenie:\na) Prawne;\nb) Wyłącznie orientacyjne;\nc) Najważniejsze.\nX010\n\n17. System ISZTAR:\na) Zawiera nomenklaturę towarową, stawki celne, dane krajowe w zakresie podatków, ograniczenia w imporcie i eksporcie;\nb) Zawiera tylko dodatkowe kody TARIC, np. kody Meursinga;\nc) Zawiera jedynie nomenklaturę TARIC\nX100\n\n18. TARIC to Zintegrowana Taryfa Wspólnot Europejskich która jest:\na) Źródłem prawa UE w zakresie taryfikacji;\nb) Internetową bazą danych prowadzoną przez DG TAXUD,\nc) bazą danych ustanowioną przez Polskie Ministerstwo Finansów.\nX010\n\n19. W nomenklaturze taryfowej ma zastosowanie tzw. zasada stopnia przetworzenia która:\na) Dotyczy tylko towarów rolnych;\nb) Oznacza drogę towaru od surowca, przez półprodukt do produktu gotowego;\nc) Odnosi się do reguł pochodzenia towaru.\nX010\n\n20. Wyroby niekompletne, niegotowe, rozmontowane lub niezmontowane klasyfikuje się:\na) Zgodnie z regułą 2A ORINS;\nb) Jako części towaru gotowego;\nc) W zależności od jego zasadniczego składnika/komponentu\nX100\n\n21. Części ogólnego użytku\na) Klasyfikuje się jako części jednego konkretnego, głównego towaru;\nb) Do własnych pozycji, np.: gwoździe, zatrzaski;\nc) Są nieistotne w procesie klasyfikacji towarowej.\nX010\n\n22. Maszyna, składająca się z kilku maszyn, przeznaczonych do pełnienia dwóch lub więcej funkcji wzajemnie uzupełniających się, taryfikowana jest:\na) Do pozycji zarezerwowanej dla maszyny występującej w nazwie jako główna\nb) Do pozycji odpowiedniej dla maszyny wykonującej podstawową funkcję;\nc) Do pozycji maszyny występującej jako pierwsza we wspólnej taryfie celnej\nX010\n\n23. W procesie klasyfikacji taryfowej zawsze korzystamy z :\na) Pierwszej Ogólnej Reguły Interpretacyjnej\nb) Z każdej reguły ORINS;\nc) Tylko jednej reguły, która odpowiada naszemu towarowi\nX100`
+        }]
+    },
+    {
+        id: 'sp_wartosc',
+        title: 'Wartość celna',
+        files: [{
+            name: 'Wartość celna.txt',
+            content: `1. Wartość celna stanowi podstawę:\na) obliczenia cła;\nb) ustalenia statusu celnego towaru;\nc) ustalenia preferencyjnego pochodzenia towaru.\nX100\n\n2. UKC wprowadza kolejność stosowania metod ustalania wartości celnej. Wyjątkiem są:\na) metoda wartości transakcyjnej i towarów identycznych, stosowane zamiennie\nb) metoda dedukcyjna i wartości kalkulowanej, których kolejność może być odwrócona\nc) metoda towarów identycznych i podobnych, których kolejność może być odwrócona.\nX010\n\n3. O podmiotach powiązanych mówimy, gdy:\na) są członkami tej samej rodziny;\nb) gdy kupują towar u tego samego producenta;\nc) są przewoźnikiem i odbiorca towaru.\nX100\n\n4. Do wartości transakcyjnej dodaje się:\na) koszty transportu po ich wprowadzeniu na obszar UE;\nb) prowizje i koszty pośrednictwa;\nc) koszty prac badawczych, inżynieryjnych, przywożonych towarów prowadzone po ich wprowadzeniu na obszar UE.\nX010\n\n5. Do wartości transakcyjnej nie wlicza się:\na) kosztów pośrednictwa;\nb) kosztów transportu po ich wprowadzeniu na obszar celny UE;\nc) kosztów transportu do miejsca wprowadzenia towaru na obszar celny UE.\nX010\n\n6. Reguły INCOTERMS regulują:\na) podział kosztów i ryzyka dostawy między sprzedającym, a kupującym;\nb) podział kosztów między przewoźnikiem, a producentem towaru;\nc) kwestie klasyfikacji towarowej\nX100\n\n7. Podstawą do zakwestionowania zadeklarowanej wartości może być:\na) wątpliwość co do wiarygodności i autentyczności dokumentów, np. faktury;\nb) brak preferencyjnego dowodu pochodzenia towaru;\nc) pewność, że zadeklarowana wartość stanowi całkowitą zapłacona kwotę za towar.\nX100\n\n8. Zgodnie z Rozp. Delegowanym 2015/2446:\na) istnieje 5 metod zastępczych ustalania wartości celnej ;\nb) istnieje 6 metod ustalania wartości celnej towaru;\nc) metody ustalania wartości celnej wskazano w UKC, nie w Rozp. Delegowanym\nX001\n\n9. Którą z poniższych metod ustalania wartości celnej towaru stosuje się w pierwszej kolejności:\na) metoda dedukcyjna;\nb) metoda towarów identycznych;\nc) metoda towarów podobnych\nX010\n\n10. Gdy sprzedaż lub cena towaru są uzależnione od warunków lub świadczeń, których wartości nie można ustalić:\na) nie ma możliwości zastosowania wartości transakcyjnej;\nb) stosuje się metodę ostatniej szansy,\nc) nie można zaimportować towaru.\nX100\n\n11. Honoraria, tantiemy, opłaty licencyjne są dodawane do wartości transakcyjnej:\na) gdy sprzedający domaga się od kupującego takiej płatności jako warunek sprzedaży;\nb) gdy towary mogą być sprzedane bez płatności tych honorariów;\nc) tylko, gdy są wymagane na terenie UE.\nX100\n\n12. Przeliczenia kursu waluty na PLN, na potrzeby ustalenia wartości celnej, dokonuje się na podstawie:\na) kursów dziennych walut obcych;\nb) bieżących kursów średnich walut obcych ogłaszanych przez NBP;\nc) kursów dziennych z dnia przyjęcia zgłoszenia w procedurze dopuszczenia do obrotu.\nX010\n\n13. Koszty robocizny związanej z pakowaniem towaru mogą stanowić element dodawany do wartości transakcyjnej:\na) nie, nigdy\nb) tak, to jeden z możliwych elementów doliczanych do ceny faktycznie zapłaconej lub należnej;\nc) tak, ale tylko w przypadku szklanych butelek.\nX010\n\n14. W sytuacji zakwestionowania wartości transakcyjnej:\na) należy unieważnić zgłoszenie;\nb) wartość celną należy ustalić metodami zastępczymi ustalania wartości celnej;\nc) należy jedynie dokonać weryfikacji faktur w kraju wystawienia.\nX010`
+        }]
+    }
+];
+
 function init() {
     setStatus('Ładowanie listy testów...');
     hideError();
 
     try {
+        if (!window.ZKTEST_DATA) {
+            window.ZKTEST_DATA = { folders: [] };
+        }
         state.manifest = loadManifest();
-        renderFolderTiles(state.manifest.folders);
+
+        // 1. Dodanie testów specjalnych do systemu (aby działały jak zwykłe testy)
+        SPECIAL_TESTS_DATA.forEach(folder => {
+            if (!state.manifest.folders.find(f => f.id === folder.id)) {
+                const questions = loadQuestions(folder);
+                folder.questionCount = questions.length;
+                state.manifest.folders.push(folder);
+            }
+        });
+
+        // 2. Renderowanie nowych testów specjalnych
+        renderSpecialFolders(SPECIAL_TESTS_DATA);
+
+        // 3. Renderowanie standardowych testów (bez testów specjalnych)
+        const normalFolders = state.manifest.folders.filter(f => !f.id.startsWith('sp_'));
+        renderFolderTiles(normalFolders);
+        
         renderExternalLinks();
         setStatus('');
+        // Initialize TTS voices if possible
+        if ('speechSynthesis' in window) populateVoiceSelect();
     } catch (error) {
         console.error('Nie udało się wczytać bazy testów:', error);
         showError('Nie udało się wczytać bazy testów. Uruchom build-manifest.ps1, aby odtworzyć plik tests/tests-data.js.');
@@ -132,7 +175,6 @@ function loadManifest() {
 
     return manifest;
 }
-
 
 const EXTERNAL_LINKS = [
     {
@@ -240,6 +282,45 @@ const EXTERNAL_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentC
   <line x1="10" y1="14" x2="21" y2="3"/>
 </svg>`;
 
+// ── DODANE: Funkcja rysująca nowe kafle w oddzielnej sekcji
+function renderSpecialFolders(folders) {
+    const grid = elements.specialFolderGrid;
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    folders.forEach((folder) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'folder-card';
+        button.addEventListener('click', () => startQuiz(folder.id));
+
+        const iconWrap = document.createElement('div');
+        iconWrap.className = 'folder-icon';
+        iconWrap.innerHTML = FOLDER_ICON_SVG;
+
+        const body = document.createElement('div');
+        body.className = 'folder-card__body';
+
+        const title = document.createElement('h3');
+        title.textContent = folder.title;
+
+        const description = document.createElement('p');
+        description.textContent = `${folder.questionCount} pytań`;
+
+        body.appendChild(title);
+        body.appendChild(description);
+
+        const arrow = document.createElement('span');
+        arrow.className = 'folder-card__arrow';
+        arrow.innerHTML = ARROW_SVG;
+
+        button.appendChild(iconWrap);
+        button.appendChild(body);
+        button.appendChild(arrow);
+        grid.appendChild(button);
+    });
+}
+
 function renderFolderTiles(folders) {
     elements.folderGrid.innerHTML = '';
 
@@ -303,8 +384,6 @@ function renderFolderTiles(folders) {
         column.appendChild(grid);
         elements.folderGrid.appendChild(column);
     });
-
-
 }
 
 const CHEVRON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
@@ -320,7 +399,6 @@ function renderExternalLinks() {
         const item = document.createElement('div');
         item.className = 'accordion-item';
 
-        // Header (always visible, clickable)
         const header = document.createElement('button');
         header.type = 'button';
         header.className = 'accordion-header';
@@ -350,7 +428,6 @@ function renderExternalLinks() {
         header.appendChild(headerLeft);
         header.appendChild(chevron);
 
-        // Body (hidden by default)
         const body = document.createElement('div');
         body.className = 'accordion-body';
 
@@ -424,30 +501,33 @@ function clearSession(folderId) {
 // ── TTS ────────────────────────────────────────────────
 let ttsVoices = [];
 let ttsSpeaking = false;
+let currentAudio = null;
 const TTS_VOICE_KEY = 'zktest_tts_voice';
+const FAKE_GOOGLE_VOICE = { name: 'Google (Online - naturalny)', lang: 'pl-PL', isGoogleOnline: true };
 
 function voiceQualityScore(v) {
+    if (v.isGoogleOnline) return 90; 
     const name = v.name.toLowerCase();
-    // Neural / natural voices (Microsoft Edge) — highest quality
     if (/natural/.test(name))  return 100;
     if (/neural/.test(name))   return 95;
     if (/online/.test(name))   return 85;
-    // Google voices (Chrome) — decent
     if (/google/.test(name))   return 70;
-    // Named Polish voices
     if (/zofia|marek|agnieszka|krzysztof/.test(name)) return 60;
-    // Avoid Paulina (the “Iwonka” robotic one)
     if (/paulina/.test(name))  return 10;
     return 30;
 }
 
 function getAllPolishVoices() {
-    return ttsVoices
+    const voices = ttsVoices
         .filter((v) => v.lang.startsWith('pl'))
         .sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a));
+    
+    voices.unshift(FAKE_GOOGLE_VOICE);
+    return voices.sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a));
 }
 
 function formatVoiceLabel(v) {
+    if (v.isGoogleOnline) return `☁️ ${v.name}`;
     const score = voiceQualityScore(v);
     const prefix = score >= 95 ? '⭐ ' : score >= 70 ? '✓ ' : '';
     return `${prefix}${v.name}`;
@@ -461,14 +541,6 @@ function populateVoiceSelect() {
 
     sel.innerHTML = '';
 
-    if (voices.length === 0) {
-        const opt = document.createElement('option');
-        opt.textContent = 'Brak głosów PL';
-        opt.disabled = true;
-        sel.appendChild(opt);
-        return;
-    }
-
     voices.forEach((v) => {
         const opt = document.createElement('option');
         opt.value = v.name;
@@ -476,67 +548,65 @@ function populateVoiceSelect() {
         sel.appendChild(opt);
     });
 
-    // Restore saved selection, or default to best voice
     if (saved && voices.some((v) => v.name === saved)) {
         sel.value = saved;
     } else {
-        sel.value = voices[0].name; // highest-scored
+        sel.value = voices[0].name;
     }
 }
 
 function getSelectedVoice() {
     const name = elements.ttsVoiceSelect && elements.ttsVoiceSelect.value;
+    if (name === FAKE_GOOGLE_VOICE.name) return FAKE_GOOGLE_VOICE;
     return ttsVoices.find((v) => v.name === name) || getAllPolishVoices()[0] || null;
 }
 
 if ('speechSynthesis' in window) {
     ttsVoices = speechSynthesis.getVoices();
-    if (ttsVoices.length > 0) populateVoiceSelect();
     speechSynthesis.addEventListener('voiceschanged', () => {
         ttsVoices = speechSynthesis.getVoices();
         populateVoiceSelect();
     });
 }
 
-// ── ElevenLabs config ──────────────────────────────────
-const ELEVENLABS_KEY       = 'zktest_11labs_key';
-const ELEVENLABS_VOICE_ID  = 'zktest_11labs_voice';
-const ELEVENLABS_ENABLED   = 'zktest_11labs_enabled';
-const DEFAULT_11L_VOICE    = '21m00Tcm4TlvDq8ikWAM'; // Rachel
-let   currentAudio         = null;
+// ── Obejście: Głos Online Google ───────────────────────
+async function speakGoogleOnline(text) {
+    const chunks = [];
+    let str = text.replace(/\s+/g, ' ').trim();
+    while (str.length > 0) {
+        if (str.length <= 150) {
+            chunks.push(str);
+            break;
+        }
+        let splitAt = str.lastIndexOf(' ', 150);
+        if (splitAt === -1) splitAt = 150;
+        chunks.push(str.substring(0, splitAt));
+        str = str.substring(splitAt).trim();
+    }
 
-function isElevenLabsEnabled() {
-    return localStorage.getItem(ELEVENLABS_ENABLED) === '1'
-        && !!localStorage.getItem(ELEVENLABS_KEY);
-}
+    let i = 0;
+    return new Promise((resolve) => {
+        function playNext() {
+            if (i >= chunks.length || !ttsSpeaking) {
+                setTTSState(false);
+                resolve();
+                return;
+            }
+            const chunk = encodeURIComponent(chunks[i]);
+            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=pl&client=tw-ob&q=${chunk}`;
+            const audio = new Audio(url);
+            currentAudio = audio;
 
-async function speakElevenLabs(text) {
-    const key     = localStorage.getItem(ELEVENLABS_KEY);
-    const voiceId = localStorage.getItem(ELEVENLABS_VOICE_ID) || DEFAULT_11L_VOICE;
-
-    const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-        method: 'POST',
-        headers: {
-            'Accept':        'audio/mpeg',
-            'Content-Type':  'application/json',
-            'xi-api-key':    key
-        },
-        body: JSON.stringify({
-            text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.2 }
-        })
+            audio.onended = () => { i++; playNext(); };
+            audio.onerror = () => { setTTSState(false); resolve(); };
+            audio.play().catch((err) => { 
+                console.error("Błąd odtwarzania chmury:", err);
+                setTTSState(false); 
+                resolve(); 
+            });
+        }
+        playNext();
     });
-
-    if (!res.ok) throw new Error(`ElevenLabs API: ${res.status} ${res.statusText}`);
-
-    const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.onended = () => { setTTSState(false); URL.revokeObjectURL(url); currentAudio = null; };
-    audio.onerror = () => { setTTSState(false); currentAudio = null; };
-    currentAudio = audio;
-    await audio.play();
 }
 
 function speakBrowser(text) {
@@ -545,7 +615,7 @@ function speakBrowser(text) {
     utt.rate = 0.95;
     utt.pitch = 1.0;
     const voice = getSelectedVoice();
-    if (voice) utt.voice = voice;
+    if (voice && !voice.isGoogleOnline) utt.voice = voice;
     utt.onend = () => setTTSState(false);
     utt.onerror = () => setTTSState(false);
     speechSynthesis.speak(utt);
@@ -567,8 +637,9 @@ async function toggleTTS() {
     setTTSState(true);
 
     try {
-        if (isElevenLabsEnabled()) {
-            await speakElevenLabs(text);
+        const voice = getSelectedVoice();
+        if (voice && voice.isGoogleOnline) {
+            await speakGoogleOnline(text);
         } else if ('speechSynthesis' in window) {
             speakBrowser(text);
         }
@@ -591,107 +662,22 @@ function stopTTS() {
     setTTSState(false);
 }
 
-// ── Preview & Settings ─────────────────────────────────
+// ── Preview ────────────────────────────────────────────
 const PREVIEW_TEXT = 'Witaj! To jest próbka głosu. Sprawdź czy brzmi naturalnie i odpowiada Twoim preferencjom.';
 
 async function previewVoice() {
     stopTTS();
     setTTSState(true);
     try {
-        if (isElevenLabsEnabled()) {
-            await speakElevenLabs(PREVIEW_TEXT);
+        const voice = getSelectedVoice();
+        if (voice && voice.isGoogleOnline) {
+            await speakGoogleOnline(PREVIEW_TEXT);
         } else {
             speakBrowser(PREVIEW_TEXT);
         }
     } catch (err) {
         alert('Błąd podglądu: ' + err.message);
         setTTSState(false);
-    }
-}
-
-function openVoiceSettings() {
-    elements.elevenlabsKey.value     = localStorage.getItem(ELEVENLABS_KEY) || '';
-    elements.elevenlabsVoiceId.value = localStorage.getItem(ELEVENLABS_VOICE_ID) || '';
-    elements.useElevenlabs.checked   = isElevenLabsEnabled();
-    elements.voiceStatusMsg.textContent = '';
-    elements.voiceStatusMsg.className = 'voice-status';
-
-    const plCount = getAllPolishVoices().length;
-    elements.voiceCountInfo.textContent = plCount > 0
-        ? `${plCount} ${plCount === 1 ? 'głos' : plCount < 5 ? 'głosy' : 'głosów'}`
-        : 'brak';
-
-    elements.voiceModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-}
-
-function closeVoiceSettings() {
-    elements.voiceModal.classList.add('hidden');
-    document.body.style.overflow = '';
-}
-
-function saveVoiceSettings() {
-    const key     = elements.elevenlabsKey.value.trim();
-    const voiceId = elements.elevenlabsVoiceId.value.trim();
-    const enable  = elements.useElevenlabs.checked;
-
-    if (key) localStorage.setItem(ELEVENLABS_KEY, key);
-    else     localStorage.removeItem(ELEVENLABS_KEY);
-
-    if (voiceId) localStorage.setItem(ELEVENLABS_VOICE_ID, voiceId);
-    else         localStorage.removeItem(ELEVENLABS_VOICE_ID);
-
-    if (enable && key) localStorage.setItem(ELEVENLABS_ENABLED, '1');
-    else               localStorage.removeItem(ELEVENLABS_ENABLED);
-
-    elements.voiceStatusMsg.textContent = '✓ Zapisano';
-    elements.voiceStatusMsg.className = 'voice-status voice-status--ok';
-}
-
-async function testElevenLabs() {
-    const key     = elements.elevenlabsKey.value.trim();
-    const voiceId = elements.elevenlabsVoiceId.value.trim() || DEFAULT_11L_VOICE;
-
-    if (!key) {
-        elements.voiceStatusMsg.textContent = '✗ Wpisz API key';
-        elements.voiceStatusMsg.className = 'voice-status voice-status--err';
-        return;
-    }
-
-    elements.voiceStatusMsg.textContent = '⏳ Łączę z ElevenLabs...';
-    elements.voiceStatusMsg.className = 'voice-status';
-
-    try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-            method: 'POST',
-            headers: {
-                'Accept':       'audio/mpeg',
-                'Content-Type': 'application/json',
-                'xi-api-key':   key
-            },
-            body: JSON.stringify({
-                text: PREVIEW_TEXT,
-                model_id: 'eleven_multilingual_v2',
-                voice_settings: { stability: 0.55, similarity_boost: 0.8, style: 0.2 }
-            })
-        });
-
-        if (!res.ok) {
-            const errText = await res.text();
-            throw new Error(`${res.status}: ${errText.slice(0, 150)}`);
-        }
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-        audio.play();
-        audio.onended = () => URL.revokeObjectURL(url);
-
-        elements.voiceStatusMsg.textContent = '✓ Działa! Jeśli Ci odpowiada, zaznacz "Używaj ElevenLabs" i zapisz.';
-        elements.voiceStatusMsg.className = 'voice-status voice-status--ok';
-    } catch (err) {
-        elements.voiceStatusMsg.textContent = '✗ ' + err.message;
-        elements.voiceStatusMsg.className = 'voice-status voice-status--err';
     }
 }
 
@@ -1053,36 +1039,47 @@ function retrySelectedTest() {
     startFreshQuiz(state.selectedFolder.id);
 }
 
+// ── ZMIANA TUTAJ: Dodana sekcja z testami specjalnymi do sterowania oknami ──
 const materialsSection     = document.getElementById('materials');
 const externalLinksSection = document.getElementById('externalLinksSection');
+const specialTestsSection  = document.getElementById('specialTestsSection');
 
 const ALL_SCREENS = () => [
     elements.setup, elements.quiz, elements.endScreen,
-    elements.continueScreen, materialsSection, externalLinksSection
+    elements.continueScreen, materialsSection, externalLinksSection, specialTestsSection
 ];
 
 function showSetupScreen() {
     stopTTS();
-    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
+    ALL_SCREENS().forEach((s) => {
+        if(s) s.classList.add('hidden');
+    });
     elements.setup.classList.remove('hidden');
     materialsSection.classList.remove('hidden');
     externalLinksSection.classList.remove('hidden');
+    if (specialTestsSection) specialTestsSection.classList.remove('hidden');
     elements.selectedTestName.textContent = '';
 }
 
 function showContinueScreen() {
-    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
+    ALL_SCREENS().forEach((s) => {
+        if(s) s.classList.add('hidden');
+    });
     elements.continueScreen.classList.remove('hidden');
 }
 
 function showQuizScreen() {
-    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
+    ALL_SCREENS().forEach((s) => {
+        if(s) s.classList.add('hidden');
+    });
     elements.quiz.classList.remove('hidden');
 }
 
 function showEndScreen() {
     stopTTS();
-    ALL_SCREENS().forEach((s) => s.classList.add('hidden'));
+    ALL_SCREENS().forEach((s) => {
+        if(s) s.classList.add('hidden');
+    });
     elements.endScreen.classList.remove('hidden');
 }
 

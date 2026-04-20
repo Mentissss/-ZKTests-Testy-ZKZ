@@ -1157,3 +1157,7 @@ code {
     .pdf-modal       { padding: 0; }
     .pdf-modal__window { border-radius: 0; height: 100vh; max-width: 100%; }
 }
+
+#specialTestsSection .folder-grid {
+    margin-top: 10px;
+}
