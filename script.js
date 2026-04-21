@@ -761,7 +761,6 @@ function parseQuestionsFromFile(text, filename) {
     const lines = [];
 
     for (const line of rawLines) {
-        // Usuwamy ewentualny prefiks "Klucz: " żeby łapało "Klucz: X100" jako "X100"
         let trimmed = line.trim();
         if (trimmed.toLowerCase().startsWith('klucz:')) {
             trimmed = trimmed.replace(/^klucz:\s*/i, '').trim();
@@ -775,14 +774,30 @@ function parseQuestionsFromFile(text, filename) {
     const questionBlocks = [];
     let currentBlock = [];
 
-    // Zmieniona logika grupowania - klucz na KOŃCU bloku
+    // Zaktualizowana logika obsługująca OBA formaty: klucz na początku i na końcu bloku
     for (const line of lines) {
-        currentBlock.push(line);
-        
         if (isAnswerKey(line)) {
-            questionBlocks.push(currentBlock);
-            currentBlock = []; // Resetujemy blok pod kolejne pytanie
+            if (currentBlock.length === 0) {
+                // Stary format: klucz znajduje się na samej górze
+                currentBlock.push(line);
+            } else if (currentBlock.some(l => isAnswerKey(l))) {
+                // Stary format: w bloku jest już klucz, więc ten należy do następnego pytania
+                questionBlocks.push(currentBlock);
+                currentBlock = [line];
+            } else {
+                // Nowy format: w bloku nie ma jeszcze klucza, znalazł się na samym dole
+                currentBlock.push(line);
+                questionBlocks.push(currentBlock);
+                currentBlock = [];
+            }
+        } else {
+            currentBlock.push(line);
         }
+    }
+    
+    // Zabezpieczenie dla ostatniego pytania w starym formacie
+    if (currentBlock.length > 0 && currentBlock.some(l => isAnswerKey(l))) {
+        questionBlocks.push(currentBlock);
     }
 
     return questionBlocks
@@ -798,9 +813,14 @@ function parseQuestionBlock(lines, filename) {
         return null;
     }
 
-    // Teraz wiemy, że klucz zawsze znajduje się na OSTATNIEJ linii bloku
-    const keyLine = lines.pop(); 
-    if (!isAnswerKey(keyLine)) {
+    let keyLine;
+    
+    // Dynamicznie wyciągamy klucz z góry lub z dołu
+    if (isAnswerKey(lines[0])) {
+        keyLine = lines.shift();
+    } else if (isAnswerKey(lines[lines.length - 1])) {
+        keyLine = lines.pop();
+    } else {
         return null;
     }
 
@@ -816,7 +836,6 @@ function parseQuestionBlock(lines, filename) {
     const options = [];
     let parsingOptionsMode = false;
 
-    // Lecimy od 0 (bo pop() już usunął klucz z końca)
     for (let index = 0; index < lines.length; index += 1) {
         const line = lines[index];
 
