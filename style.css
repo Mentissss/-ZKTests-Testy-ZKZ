@@ -752,10 +752,48 @@ code {
     color: var(--text);
 }
 
+.pdf-modal__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pdf-modal__open-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .15s ease, color .15s ease;
+    white-space: nowrap;
+}
+
+.pdf-modal__open-link:hover {
+    background: var(--bg-2);
+    color: var(--text);
+}
+
 .pdf-modal__frame {
     flex: 1;
     width: 100%;
     border: none;
+}
+
+.pdf-modal__fallback {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    padding: 40px;
 }
 
 /* ─── Continue screen ─────────────────────────────────── */

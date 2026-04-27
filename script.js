@@ -67,16 +67,39 @@ const pdfModal      = document.getElementById('pdfModal');
 const pdfFrame      = document.getElementById('pdfFrame');
 const pdfModalTitle = document.getElementById('pdfModalTitle');
 const pdfModalClose = document.getElementById('pdfModalClose');
+const pdfOpenLink   = document.getElementById('pdfOpenLink');
+const pdfFallback   = document.getElementById('pdfFallback');
 
 document.querySelectorAll('.material-card').forEach((btn) => {
     btn.addEventListener('click', () => {
         const src   = btn.dataset.pdf;
         const title = btn.querySelector('h3').textContent;
         pdfModalTitle.textContent = title;
+        pdfOpenLink.href = src;
+        pdfFallback.classList.add('hidden');
+        pdfFrame.classList.remove('hidden');
         pdfFrame.src = src;
         pdfModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
     });
+});
+
+// Fallback: jeśli iframe nie załaduje PDF, pokaż komunikat z linkiem
+pdfFrame.addEventListener('error', () => {
+    pdfFrame.classList.add('hidden');
+    pdfFallback.classList.remove('hidden');
+});
+// Dodatkowe zabezpieczenie: sprawdź czy iframe załadował coś sensownego
+pdfFrame.addEventListener('load', () => {
+    try {
+        // Jeśli src jest pusty, nic nie rób
+        if (!pdfFrame.src || pdfFrame.src === window.location.href) return;
+        pdfFallback.classList.add('hidden');
+        pdfFrame.classList.remove('hidden');
+    } catch (_) {
+        pdfFrame.classList.add('hidden');
+        pdfFallback.classList.remove('hidden');
+    }
 });
 
 function closePdfModal() {
