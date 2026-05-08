@@ -43,14 +43,204 @@ const state = {
         seen: 0,
         known: 0,
         total: 0
+    },
+
+    // Error mode (uses quiz machinery with mode flag)
+    errorMode: {
+        active: false,
+        deck: []
+    },
+
+    // Mock exam
+    mock: {
+        active: false,
+        questions: [],     // [{ ...question, categoryId, categoryLabel }]
+        index: 0,
+        answers: [],       // [{ selectedIndexes, skipped }]
+        startedAt: 0,
+        endsAt: 0,
+        timerId: null,
+        finishedSummary: null
+    },
+
+    // Oral simulator
+    oral: {
+        deck: [],
+        index: 0,
+        known: 0,
+        total: 0,
+        timerId: null,
+        timeLeft: 0,
+        revealed: false
+    },
+
+    // Dialog mode
+    dialog: {
+        scriptId: null,
+        script: null,
+        index: 0,
+        known: 0,
+        revealed: false,
+        history: []        // [{ q, a, known }]
     }
 };
 
 const STORAGE = {
-    THEME:        'zktest_theme',
-    SESSION:      (id) => `zktest_session_${id}`,
-    TRAINER:      (id) => `zktest_trainer_${id}`
+    THEME:          'zktest_theme',
+    SESSION:        (id) => `zktest_session_${id}`,
+    TRAINER:        (id) => `zktest_trainer_${id}`,
+    ERRORS:         'zktest_errors_v1',
+    STATS:          'zktest_stats_v1',
+    DIALOG_DONE:    'zktest_dialog_done_v1',
+    FC_SESSION:     (id) => `zktest_fc_${id}`,
+    MOCK_SESSION:   'zktest_mock_session_v1',
+    ORAL_SESSION:   'zktest_oral_session_v1',
+    DIALOG_SESSION: (id) => `zktest_dialog_${id}`
 };
+
+// ── Mock exam categories ─────────────────────────────────
+const EXAM_CATEGORIES = [
+    {
+        id: 'system_prawa',
+        label: 'System prawa',
+        count: 8,
+        folderIds: ['Cywilne', 'Różne']
+    },
+    {
+        id: 'prawo_celne',
+        label: 'Prawo celne',
+        count: 16,
+        folderIds: ['Celne', 'Celne_2', 'Celne_3', 'sp_procedury', 'sp_pochodzenie', 'sp_taryfa', 'sp_wartosc']
+    },
+    {
+        id: 'podatki',
+        label: 'Podatki',
+        count: 12,
+        folderIds: ['Podatki', 'Akcyza']
+    },
+    {
+        id: 'prawo_karne',
+        label: 'Prawo karne',
+        count: 12,
+        folderIds: ['Karne', 'sp_kks']
+    },
+    {
+        id: 'kontrola',
+        label: 'Kontrola',
+        count: 12,
+        folderIds: ['Kontrola']
+    }
+];
+
+const MOCK_EXAM_MINUTES = 60;
+
+// ── Dialog scripts (curated oral exam dialogues) ────────
+const DIALOG_SCRIPTS = [
+    {
+        id: 'dlg_wit',
+        title: 'WIT — Wiążąca Informacja Taryfowa',
+        intro: 'Egzaminator pyta cię o decyzję WIT. Przejdź przez sekwencję pytań pogłębiających.',
+        steps: [
+            { q: 'Co to jest WIT?', a: 'Wiążąca Informacja Taryfowa — decyzja organu celnego dotycząca klasyfikacji taryfowej (kodu CN/HS) konkretnego towaru. Wiąże organy celne państw członkowskich UE wobec posiadacza decyzji.' },
+            { q: 'Kto wydaje WIT w Polsce?', a: 'W Polsce WIT wydaje Dyrektor Krajowej Informacji Skarbowej (KIS).' },
+            { q: 'Jak długo jest ważna decyzja WIT?', a: 'WIT jest co do zasady ważny przez 3 lata od dnia wejścia w życie decyzji.' },
+            { q: 'Czy WIT może wcześniej utracić ważność?', a: 'Tak — m.in. gdy zostanie zmieniona Nomenklatura Scalona (CN), wydane zostanie rozporządzenie o klasyfikacji, decyzja stanie się niezgodna z prawem albo zostanie cofnięta/unieważniona.' },
+            { q: 'Czy WIT obowiązuje tylko w Polsce, czy w całej UE?', a: 'WIT wiąże wszystkie organy celne państw członkowskich UE, ale tylko wobec posiadacza decyzji i wobec konkretnego towaru, dla którego została wydana.' }
+        ]
+    },
+    {
+        id: 'dlg_pochodzenie',
+        title: 'Pochodzenie towaru i preferencje',
+        intro: 'Pytania pogłębiające o pochodzeniu i dokumentach pochodzenia.',
+        steps: [
+            { q: 'Czym różni się pochodzenie preferencyjne od niepreferencyjnego?', a: 'Niepreferencyjne ustala kraj pochodzenia dla statystyk, oznaczeń i środków handlowych — nie daje obniżonych stawek. Preferencyjne pozwala zastosować obniżone (np. zerowe) stawki celne na podstawie umowy o wolnym handlu lub GSP.' },
+            { q: 'Wymień ogólne zasady pochodzenia preferencyjnego.', a: 'Cztery zasady: bezpośredniego transportu, tożsamości (towar dostarczony w niezmienionym stanie), terytorialności i dokumentowania pochodzenia.' },
+            { q: 'Co to jest GSP?', a: 'Generalised System of Preferences — Ogólny System Preferencji UE. Jednostronne preferencje przyznawane krajom rozwijającym się i najsłabiej rozwiniętym.' },
+            { q: 'Co to jest REX?', a: 'System zarejestrowanych eksporterów. Zastępuje świadectwa FORM A w GSP — eksporterzy zarejestrowani w REX sami sporządzają deklarację pochodzenia.' },
+            { q: 'Wymień typowe dowody pochodzenia preferencyjnego.', a: 'EUR.1, EUR-MED, deklaracja pochodzenia upoważnionego eksportera, oświadczenie o pochodzeniu w systemie REX, FORM A (dawniej w GSP).' },
+            { q: 'Co to jest świadectwo ATR i ile jest ważne?', a: 'Świadectwo dokumentujące status celny towaru w wymianie z Turcją (unia celna UE-Turcja). Ważne 4 miesiące.' }
+        ]
+    },
+    {
+        id: 'dlg_procedury',
+        title: 'Procedury celne i odwołania',
+        intro: 'Postępowanie w sprawach celnych — terminy, organy, doręczenia.',
+        steps: [
+            { q: 'Jakie przepisy stosuje się w Polsce do postępowania w sprawach celnych?', a: 'Przepisy ustawy Ordynacja podatkowa (przez odesłanie z Prawa celnego) oraz Unijnego Kodeksu Celnego (UKC).' },
+            { q: 'W jakim terminie wnosi się odwołanie od decyzji w zakresie prawa celnego?', a: 'W terminie 14 dni od dnia doręczenia decyzji stronie.' },
+            { q: 'Gdzie składa się odwołanie?', a: 'W państwie członkowskim, w którym decyzja została wydana — czyli w Polsce, do polskiego organu drugiej instancji za pośrednictwem organu, który decyzję wydał.' },
+            { q: 'Co to jest decyzja niekorzystna?', a: 'Decyzja wydana na wniosek, która nie uwzględnia go w pełni (np. odmawia, ogranicza, narzuca warunki).' },
+            { q: 'Co organ celny robi przed wydaniem decyzji niekorzystnej?', a: 'Daje wnioskodawcy możliwość przedstawienia stanowiska — termin to 30 dni.' },
+            { q: 'W jakim terminie organ wydaje decyzję od daty przyjęcia wniosku?', a: 'Co do zasady 120 dni od daty przyjęcia wniosku.' },
+            { q: 'Kiedy decyzja zaczyna obowiązywać?', a: 'Z dniem jej doręczenia lub uznania za doręczoną.' }
+        ]
+    },
+    {
+        id: 'dlg_wartosc',
+        title: 'Wartość celna',
+        intro: 'Metody ustalania wartości celnej i ich kolejność.',
+        steps: [
+            { q: 'Co stanowi podstawę obliczenia cła?', a: 'Wartość celna towaru — z reguły wartość transakcyjna (cena faktycznie zapłacona lub należna) z określonymi korektami z UKC.' },
+            { q: 'Wymień kolejność stosowania metod ustalania wartości celnej.', a: '1) wartość transakcyjna, 2) wartość transakcyjna towarów identycznych, 3) wartość transakcyjna towarów podobnych, 4) metoda dedukcyjna, 5) metoda wartości kalkulowanej, 6) metoda ostatniej szansy. Wyjątek: kolejność 4 i 5 może być na wniosek importera odwrócona.' },
+            { q: 'Co dolicza się do wartości transakcyjnej?', a: 'M.in. prowizje i koszty pośrednictwa (oprócz prowizji od zakupu), opakowania, koszty transportu i ubezpieczenia do miejsca wprowadzenia na obszar UE, honoraria/tantiemy/opłaty licencyjne stanowiące warunek sprzedaży, robociznę przy pakowaniu.' },
+            { q: 'Czego nie wlicza się do wartości transakcyjnej?', a: 'Kosztów transportu po wprowadzeniu na obszar celny UE, ceł i podatków pobieranych w UE, prowizji od zakupu, opłat za prawo do reprodukcji w UE.' },
+            { q: 'Co to są reguły INCOTERMS?', a: 'Międzynarodowe reguły handlowe regulujące podział kosztów i ryzyka dostawy między sprzedającym a kupującym (np. EXW, FOB, CIF, DAP, DDP).' },
+            { q: 'Po jakim kursie przelicza się walutę dla wartości celnej?', a: 'Po bieżącym kursie średnim walut obcych ogłaszanym przez NBP (z przedostatniej środy miesiąca, obowiązującym przez cały następny miesiąc).' }
+        ]
+    },
+    {
+        id: 'dlg_taryfa',
+        title: 'Nomenklatura taryfowa i klasyfikacja',
+        intro: 'Budowa taryfy celnej, ORINS, TARIC.',
+        steps: [
+            { q: 'Z czego zbudowana jest nomenklatura taryfowa?', a: 'Z sekcji, działów, pozycji i podpozycji.' },
+            { q: 'Ile cyfr ma pozycja HS, a ile kod CN?', a: 'Pozycja HS = 6 cyfr (rozpoznawana w pierwszych 4 cyfrach jako "pozycja"), kod CN = 8 cyfr, kod TARIC = 10 cyfr.' },
+            { q: 'Ile sekcji ma nomenklatura taryfowa?', a: '21 sekcji.' },
+            { q: 'Co to są ORINS?', a: 'Ogólne Reguły Interpretacji Nomenklatury Scalonej — zestaw 6 reguł stosowanych przy klasyfikacji taryfowej towarów.' },
+            { q: 'Do czego służy reguła 5 ORINS?', a: 'Do klasyfikacji opakowań i pojemników przewożonych wraz z towarem (np. futerał na broń klasyfikuje się razem z bronią, jeśli nadaje się do długotrwałego użytkowania).' },
+            { q: 'Co to jest TARIC i kto go prowadzi?', a: 'Zintegrowana Taryfa Wspólnot Europejskich — internetowa baza danych prowadzona przez Komisję Europejską (DG TAXUD), nie jest źródłem prawa.' },
+            { q: 'Co to jest ISZTAR?', a: 'Polski system informacyjny zawierający nomenklaturę towarową, stawki celne, dane krajowe (VAT, akcyza), ograniczenia w imporcie i eksporcie.' }
+        ]
+    },
+    {
+        id: 'dlg_kks',
+        title: 'KKS — postępowanie przygotowawcze',
+        intro: 'Właściwość rzeczowa NUCS, podejrzany, zatrzymanie, nadzór prokuratora.',
+        steps: [
+            { q: 'Co obejmuje właściwość rzeczowa NUCS?', a: 'Wskazane w ustawie o KAS przestępstwa z KK, wskazane w KKS przestępstwa skarbowe i wykroczenia skarbowe oraz czyny zabronione z ustaw szczególnych wskazanych w ustawie o KAS, a także niektóre wykroczenia z KW.' },
+            { q: 'Kto jest finansowym organem postępowania przygotowawczego?', a: 'M.in. Naczelnik Urzędu Celno-Skarbowego, Naczelnik Urzędu Skarbowego, Szef KAS i Dyrektor IAS — w określonych sprawach. Straż Graniczna NIE jest organem finansowym.' },
+            { q: 'Co oznacza pojęcie "znaczna wartość"?', a: 'Mienie, którego wartość w chwili czynu zabronionego przekracza 200 tysięcy złotych. To pojęcie z prawa karnego.' },
+            { q: 'Kim jest podejrzany?', a: 'Osoba, co do której wydano postanowienie o przedstawieniu zarzutów, albo której bez takiego postanowienia postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze podejrzanego.' },
+            { q: 'Kiedy obligatoryjny jest nadzór prokuratora w sprawie o przestępstwo skarbowe?', a: 'M.in. gdy podejrzany nie ukończył 18 lat, jest głuchy/niemy/niewidomy, są wątpliwości co do poczytalności, lub gdy sąd zastosował tymczasowe aresztowanie.' },
+            { q: 'Ile trwają czynności w trybie art. 308 kpk?', a: 'Mogą być wykonywane w ciągu 5 dni od dnia pierwszej czynności.' },
+            { q: 'Jaki jest termin doręczenia postanowienia prokuratora o zatwierdzeniu zatrzymania rzeczy w trybie art. 308 kpk (przymusowo)?', a: '7 dni.' }
+        ]
+    }
+];
+
+// ── Curated oral topics (used by oral simulator) ────────
+const ORAL_TOPICS = [
+    { topic: 'Co to jest WIT i kto go wydaje?', answer: 'Wiążąca Informacja Taryfowa — decyzja o klasyfikacji taryfowej. W Polsce wydaje ją Dyrektor Krajowej Informacji Skarbowej. Ważna 3 lata.' },
+    { topic: 'Wymień zasady pochodzenia preferencyjnego.', answer: 'Bezpośredniego transportu, tożsamości, terytorialności, dokumentowania pochodzenia.' },
+    { topic: 'Z czego zbudowana jest nomenklatura taryfowa?', answer: 'Sekcji (21), działów, pozycji (HS — 4/6 cyfr), podpozycji. CN = 8 cyfr, TARIC = 10 cyfr.' },
+    { topic: 'Co stanowi podstawę obliczenia cła?', answer: 'Wartość celna towaru — co do zasady wartość transakcyjna z korektami z UKC.' },
+    { topic: 'Wymień metody ustalania wartości celnej.', answer: 'Transakcyjna, identyczne, podobne, dedukcyjna, kalkulowana, ostatniej szansy. Kolejność 4-5 odwracalna na wniosek.' },
+    { topic: 'W jakim terminie wnosi się odwołanie od decyzji celnej?', answer: '14 dni od doręczenia decyzji stronie.' },
+    { topic: 'Co to jest decyzja niekorzystna?', answer: 'Decyzja wydana na wniosek, która nie uwzględnia go w pełni. Przed wydaniem organ daje wnioskodawcy 30 dni na stanowisko.' },
+    { topic: 'Co to jest GSP?', answer: 'Ogólny System Preferencji — jednostronne preferencje UE dla krajów rozwijających się i najsłabiej rozwiniętych.' },
+    { topic: 'Co to jest REX?', answer: 'System zarejestrowanych eksporterów. Eksporterzy w REX sami sporządzają deklarację o pochodzeniu (m.in. w GSP).' },
+    { topic: 'Co to jest TARIC?', answer: 'Zintegrowana Taryfa UE — baza danych prowadzona przez DG TAXUD. Nie jest źródłem prawa, ale gromadzi środki taryfowe i pozataryfowe.' },
+    { topic: 'Co to jest ISZTAR?', answer: 'Polski system informacyjny — nomenklatura, stawki, podatki krajowe, ograniczenia importowe/eksportowe.' },
+    { topic: 'Co to są ORINS?', answer: 'Ogólne Reguły Interpretacji Nomenklatury Scalonej — 6 reguł klasyfikacji taryfowej.' },
+    { topic: 'Co obejmuje właściwość rzeczowa NUCS?', answer: 'Przestępstwa z KK wskazane w ustawie o KAS, przestępstwa i wykroczenia skarbowe z KKS, czyny z ustaw szczególnych, niektóre wykroczenia z KW.' },
+    { topic: 'Wymień finansowe organy postępowania przygotowawczego.', answer: 'NUCS, NUS, Szef KAS, Dyrektor IAS w określonych sprawach. Straż Graniczna nie jest organem finansowym.' },
+    { topic: 'Czym jest "znaczna wartość" w prawie karnym?', answer: 'Mienie, którego wartość w chwili czynu przekracza 200 tysięcy złotych.' },
+    { topic: 'Podaj kary za przestępstwo skarbowe w stawkach dziennych.', answer: 'Kara grzywny: od 10 do 720 stawek dziennych.' },
+    { topic: 'Co to jest "ustawowy próg" w KKS?', answer: 'Wykroczenie skarbowe zagrożone karą grzywny wyrażoną kwotowo (od 1/10 do 20-krotności minimalnego wynagrodzenia).' },
+    { topic: 'Reguły INCOTERMS — czego dotyczą?', answer: 'Podziału kosztów i ryzyka dostawy między sprzedającym a kupującym (np. EXW, FOB, CIF, DAP, DDP).' },
+    { topic: 'Co to jest świadectwo ATR i ile jest ważne?', answer: 'Dokument statusu celnego w wymianie UE-Turcja. Ważne 4 miesiące.' },
+    { topic: 'Co to jest świadectwo o niemanipulowaniu towarem?', answer: 'Potwierdza zachowanie dozoru celnego dla towarów transportowanych między stronami umowy o wolnym handlu.' }
+];
 
 // ── Materials definition ───────────────────────────────────
 const MATERIALS = [
@@ -200,8 +390,21 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTestGroups();
     renderMaterials();
     renderExternalLinks();
+    updateErrorBadge();
     handleHashRoute();
     window.addEventListener('hashchange', handleHashRoute);
+
+    // Auto-save state when user hides the tab or closes the window
+    const persistAll = () => {
+        try {
+            if (state.mock.active) saveMockSession();
+            if (state.fc.deck && state.fc.deck.length > 0) saveFCSession();
+            if (state.oral.deck && state.oral.deck.length > 0) saveOralSession();
+        } catch (_) {}
+    };
+    document.addEventListener('visibilitychange', () => { if (document.hidden) persistAll(); });
+    window.addEventListener('pagehide', persistAll);
+    window.addEventListener('beforeunload', persistAll);
 });
 
 function bindGlobalControls() {
@@ -251,12 +454,23 @@ function bindGlobalControls() {
         if (state.selectedFolder) startFlashcards(state.selectedFolder.id);
     });
 
-    // continue prompt
-    $('#continueResumeBtn').addEventListener('click', resumeQuizSession);
-    $('#continueRestartBtn').addEventListener('click', () => {
-        if (state.pendingFolderId) startQuiz(state.pendingFolderId, true);
+    // continue prompt (handles both quiz and flashcards)
+    $('#continueResumeBtn').addEventListener('click', () => {
+        if (state.pendingResumeMode === 'flash') resumeFCSession();
+        else resumeQuizSession();
     });
-    $('#continueCancelBtn').addEventListener('click', () => navigate('tests'));
+    $('#continueRestartBtn').addEventListener('click', () => {
+        if (!state.pendingFolderId) return;
+        if (state.pendingResumeMode === 'flash') {
+            startFlashcards(state.pendingFolderId, true);
+        } else {
+            startQuiz(state.pendingFolderId, true);
+        }
+    });
+    $('#continueCancelBtn').addEventListener('click', () => {
+        state.pendingResumeMode = null;
+        navigate('tests');
+    });
 
     // end screen
     $('#endRetryBtn').addEventListener('click', () => {
@@ -315,6 +529,77 @@ function bindGlobalControls() {
     });
     $('#trainerRateYes').addEventListener('click', () => rateTrainerCard(true));
     $('#trainerRateNo').addEventListener('click', () => rateTrainerCard(false));
+
+    // Action chips
+    $('#goErrorMode').addEventListener('click', openErrorMode);
+    $('#goMockExam').addEventListener('click', openMockExamSetup);
+    $('#goHeatmap').addEventListener('click', openHeatmap);
+    $('#goOralSim').addEventListener('click', openOralSim);
+    $('#goDialog').addEventListener('click', openDialogList);
+
+    // Error mode buttons
+    $('#errorClearBtn').addEventListener('click', () => {
+        if (!confirm('Wyczyścić całą pulę błędów?')) return;
+        clearErrorPool();
+        renderErrorMode();
+        toast('Pula błędów wyczyszczona');
+    });
+    $('#errorStartBtn').addEventListener('click', () => startErrorQuiz('quiz'));
+    $('#errorFlashBtn').addEventListener('click', () => startErrorQuiz('flash'));
+
+    // Mock exam buttons
+    $('#mockStartBtn').addEventListener('click', () => {
+        const saved = loadMockSession();
+        if (saved && saved.questions && saved.questions.length > 0) {
+            if (!confirm('Masz nieukończony egzamin. Rozpoczęcie nowego nadpisze go. Kontynuować?')) return;
+        }
+        startMockExam();
+    });
+    $('#mockResumeBtn').addEventListener('click', resumeMockExam);
+    $('#mockDiscardBtn').addEventListener('click', () => {
+        if (!confirm('Usunąć zapisany egzamin?')) return;
+        clearMockSession();
+        $('#mockResumeBanner').classList.add('hidden');
+        toast('Zapisany egzamin usunięty');
+    });
+    $('#mockAbortBtn').addEventListener('click', abortMockExam);
+    $('#mockPrevBtn').addEventListener('click', mockGoPrev);
+    $('#mockSkipBtn').addEventListener('click', mockGoNext);
+    $('#mockNextBtn').addEventListener('click', mockGoNext);
+    $('#mockSubmitBtn').addEventListener('click', mockSubmit);
+    $('#mockRetryBtn').addEventListener('click', () => { openMockExamSetup(); });
+    $('#mockReviewBtn').addEventListener('click', () => {
+        const list = $('#mockEndResults');
+        if (list) list.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Heatmap
+    $('#heatmapResetBtn').addEventListener('click', () => {
+        if (!confirm('Wyczyścić wszystkie statystyki folderów?')) return;
+        clearStats();
+        renderHeatmap();
+        toast('Statystyki wyczyszczone');
+    });
+
+    // Oral simulator
+    $('#oralRevealBtn').addEventListener('click', oralReveal);
+    $('#oralRateYes').addEventListener('click', () => oralRate(true));
+    $('#oralRateNo').addEventListener('click', () => oralRate(false));
+    $('#oralShuffleBtn').addEventListener('click', () => { startOralSim(); toast('Pula przetasowana'); });
+    $('#oralTimerSelect').addEventListener('change', oralReset);
+    $('#oralResumeBtn').addEventListener('click', resumeOralSession);
+    $('#oralDiscardBtn').addEventListener('click', () => {
+        if (!confirm('Usunąć zapisaną sesję ustnego?')) return;
+        clearOralSession();
+        startOralSim();
+        toast('Zapisana sesja usunięta');
+    });
+
+    // Dialog
+    $('#dialogBackBtn').addEventListener('click', openDialogList);
+    $('#dialogRevealBtn').addEventListener('click', dialogReveal);
+    $('#dialogRateYes').addEventListener('click', () => dialogRate(true));
+    $('#dialogRateNo').addEventListener('click', () => dialogRate(false));
 }
 
 function navigate(view) {
@@ -329,6 +614,13 @@ function navigate(view) {
     if (['home','tests','materials','links'].includes(view)) {
         history.replaceState(null, '', `#${view}`);
     }
+
+    // Cleanup: leaving runner views resets stale state
+    if (view !== 'quiz' && view !== 'flashcards' && view !== 'end') {
+        state.errorMode.active = false;
+    }
+    if (view !== 'mock-run') stopMockTimer();
+    if (view !== 'oral-sim') stopOralTimer();
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -700,6 +992,94 @@ function shuffleArray(items) {
     return a;
 }
 
+// ── Question fingerprinting (stable hash of normalized text) ──
+function simpleHash(s) {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i);
+    return (h >>> 0).toString(36);
+}
+function fingerprintQuestion(q) {
+    const normalized = String(q.questionText || '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+        .slice(0, 220);
+    return 'q_' + simpleHash(normalized + '|' + (q.options || []).length);
+}
+
+// ── Error pool (questions answered wrong) ──────────────────
+function loadErrorPool() {
+    try {
+        const raw = localStorage.getItem(STORAGE.ERRORS);
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) { return {}; }
+}
+function saveErrorPool(pool) {
+    try { localStorage.setItem(STORAGE.ERRORS, JSON.stringify(pool)); } catch (_) {}
+}
+function errorPoolList() {
+    const pool = loadErrorPool();
+    return Object.values(pool);
+}
+function recordError(q, folderId, folderTitle) {
+    const pool = loadErrorPool();
+    const fp = fingerprintQuestion(q);
+    pool[fp] = {
+        fp,
+        questionText: q.questionText,
+        options: q.options,
+        correctIndexes: q.correctIndexes,
+        folderId: folderId || pool[fp]?.folderId || '',
+        folderTitle: folderTitle || pool[fp]?.folderTitle || '',
+        addedAt: pool[fp]?.addedAt || Date.now()
+    };
+    saveErrorPool(pool);
+    updateErrorBadge();
+}
+function removeError(q) {
+    const pool = loadErrorPool();
+    const fp = fingerprintQuestion(q);
+    if (pool[fp]) {
+        delete pool[fp];
+        saveErrorPool(pool);
+        updateErrorBadge();
+    }
+}
+function clearErrorPool() {
+    saveErrorPool({});
+    updateErrorBadge();
+}
+function updateErrorBadge() {
+    const badge = document.getElementById('errorBadge');
+    if (!badge) return;
+    const n = Object.keys(loadErrorPool()).length;
+    badge.textContent = n;
+    badge.dataset.empty = n === 0 ? 'true' : 'false';
+}
+
+// ── Per-folder stats (attempted / correct) ─────────────────
+function loadStats() {
+    try {
+        const raw = localStorage.getItem(STORAGE.STATS);
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) { return {}; }
+}
+function saveStats(s) {
+    try { localStorage.setItem(STORAGE.STATS, JSON.stringify(s)); } catch (_) {}
+}
+function recordStat(folderId, isCorrect) {
+    if (!folderId) return;
+    const s = loadStats();
+    if (!s[folderId]) s[folderId] = { attempted: 0, correct: 0 };
+    s[folderId].attempted += 1;
+    if (isCorrect) s[folderId].correct += 1;
+    saveStats(s);
+}
+function clearStats() {
+    saveStats({});
+}
+
 // ── Quiz session storage ──────────────────────────────────
 function saveQuizSession() {
     if (!state.selectedFolder) return;
@@ -832,6 +1212,13 @@ function quizCheckAnswer() {
         $('#quizScore').textContent = `Poprawne: ${state.quiz.score}`;
     }
 
+    // Record stats + error pool
+    const folderId = state.errorMode.active ? '' : (state.selectedFolder ? state.selectedFolder.id : '');
+    const folderTitle = state.selectedFolder ? state.selectedFolder.title : '';
+    if (!state.errorMode.active && folderId) recordStat(folderId, ok);
+    if (ok) removeError(q);
+    else recordError(q, folderId, folderTitle);
+
     state.quiz.results.push({
         correct: ok, selectedIndexes: selected, correctIndexes: q.correctIndexes,
         questionText: q.questionText, options: q.options
@@ -896,12 +1283,53 @@ function showQuizEnd() {
     navigate('end');
 }
 
+// ── Flashcards session persistence ─────────────────────────
+function saveFCSession() {
+    if (!state.selectedFolder || state.errorMode.active) return;
+    if (!state.fc.deck || state.fc.deck.length === 0) return;
+    try {
+        localStorage.setItem(STORAGE.FC_SESSION(state.selectedFolder.id), JSON.stringify({
+            folderId: state.selectedFolder.id,
+            folderTitle: state.selectedFolder.title,
+            deck: state.fc.deck,
+            seen: state.fc.seen,
+            known: state.fc.known,
+            total: state.fc.total,
+            savedAt: Date.now()
+        }));
+    } catch (_) {}
+}
+function loadFCSession(folderId) {
+    try {
+        const raw = localStorage.getItem(STORAGE.FC_SESSION(folderId));
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+function clearFCSession(folderId) {
+    localStorage.removeItem(STORAGE.FC_SESSION(folderId));
+}
+
 // ── Flashcards mode (test-based) ───────────────────────────
-function startFlashcards(folderId) {
+function startFlashcards(folderId, fresh = false) {
     const folder = state.folders.find(f => f.id === folderId);
     if (!folder) return;
     state.selectedFolder = folder;
     state.pendingFolderId = null;
+
+    if (!fresh) {
+        const saved = loadFCSession(folderId);
+        if (saved && saved.deck && saved.deck.some(it => it.status !== 'known')) {
+            state.pendingFolderId = folderId;
+            state.pendingResumeMode = 'flash';
+            const remaining = saved.deck.filter(it => it.status !== 'known').length;
+            $('#continueInfo').textContent =
+                `Fiszki: pozostało ${remaining} / ${saved.total} · oznaczone „umiem": ${saved.known}`;
+            navigate('continue');
+            return;
+        }
+    } else {
+        clearFCSession(folderId);
+    }
 
     let questions;
     try {
@@ -918,6 +1346,29 @@ function startFlashcards(folderId) {
     state.fc.total = state.fc.deck.length;
     state.fc.flipped = false;
     state.fc.current = null;
+
+    $('#fcTestName').textContent = folder.title;
+    navigate('flashcards');
+    nextFlashcard();
+}
+
+function resumeFCSession() {
+    const folderId = state.pendingFolderId;
+    if (!folderId) return;
+    const saved = loadFCSession(folderId);
+    if (!saved) return startFlashcards(folderId, true);
+    const folder = state.folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    state.selectedFolder = folder;
+    state.fc.deck = saved.deck;
+    state.fc.seen = saved.seen || 0;
+    state.fc.known = saved.known || 0;
+    state.fc.total = saved.total || saved.deck.length;
+    state.fc.flipped = false;
+    state.fc.current = null;
+    state.pendingFolderId = null;
+    state.pendingResumeMode = null;
 
     $('#fcTestName').textContent = folder.title;
     navigate('flashcards');
@@ -986,6 +1437,14 @@ function rateFlashcard(known) {
         state.fc.deck = state.fc.deck.filter(it => it !== state.fc.current).concat([state.fc.current]);
     }
     state.fc.seen += 1;
+    saveFCSession();
+
+    // If deck finished — clear session
+    const remaining = state.fc.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0 && state.selectedFolder && !state.errorMode.active) {
+        clearFCSession(state.selectedFolder.id);
+    }
+
     nextFlashcard();
 }
 
@@ -1178,6 +1637,919 @@ function toast(msg) {
         el.classList.remove('is-visible');
         setTimeout(() => el.classList.add('hidden'), 250);
     }, 2200);
+}
+
+/* ──────────────────────────────────────────────────────────
+   ERROR MODE
+   ────────────────────────────────────────────────────────── */
+function openErrorMode() {
+    state.errorMode.active = false;
+    renderErrorMode();
+    navigate('error-mode');
+}
+
+function renderErrorMode() {
+    const list = errorPoolList();
+    const info = $('#errorPoolInfo');
+    const hint = $('#errorHint');
+    const start = $('#errorStartBtn');
+    const flash = $('#errorFlashBtn');
+    const clearBtn = $('#errorClearBtn');
+    const wrap = $('#errorList');
+
+    info.textContent = `Liczba pytań w puli: ${list.length}`;
+    const empty = list.length === 0;
+    start.disabled = empty;
+    flash.disabled = empty;
+    clearBtn.disabled = empty;
+    start.style.opacity = empty ? .5 : 1;
+    flash.style.opacity = empty ? .5 : 1;
+    clearBtn.style.opacity = empty ? .5 : 1;
+    hint.classList.toggle('hidden', !empty);
+
+    wrap.innerHTML = '';
+    if (empty) {
+        const div = document.createElement('div');
+        div.className = 'error-list-empty';
+        div.textContent = 'Brak błędów. Świetnie — albo jeszcze nic nie rozwiązałeś.';
+        wrap.appendChild(div);
+        return;
+    }
+
+    list
+        .sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0))
+        .slice(0, 50)
+        .forEach((it, idx) => {
+            const row = document.createElement('div');
+            row.className = 'error-list-item';
+            const src = document.createElement('div');
+            src.className = 'error-list-item__src';
+            src.textContent = `${idx + 1}. ${it.folderTitle || 'Inne'}`;
+            const txt = document.createElement('div');
+            txt.innerHTML = String(it.questionText || '').replace(/<br>/g, ' ').replace(/<[^>]+>/g, ' ');
+            row.appendChild(src);
+            row.appendChild(txt);
+            wrap.appendChild(row);
+        });
+
+    if (list.length > 50) {
+        const more = document.createElement('div');
+        more.className = 'muted';
+        more.style.cssText = 'text-align:center; padding:12px; font-size:.85rem;';
+        more.textContent = `…oraz ${list.length - 50} więcej`;
+        wrap.appendChild(more);
+    }
+}
+
+function startErrorQuiz(mode) {
+    const list = errorPoolList();
+    if (list.length === 0) return;
+
+    const questions = list.map(it => ({
+        questionText: it.questionText,
+        options: it.options,
+        correctIndexes: it.correctIndexes,
+        filename: it.folderTitle || ''
+    }));
+
+    state.errorMode.active = true;
+    state.selectedFolder = { id: '__errors__', title: 'Tryb błędów', questionCount: questions.length };
+
+    if (mode === 'flash') {
+        state.fc.deck = shuffleArray(questions).map(q => ({ q, status: 'pending' }));
+        state.fc.seen = 0;
+        state.fc.known = 0;
+        state.fc.total = state.fc.deck.length;
+        state.fc.flipped = false;
+        state.fc.current = null;
+        $('#fcTestName').textContent = 'Tryb błędów';
+        navigate('flashcards');
+        nextFlashcard();
+    } else {
+        state.quiz.questions = shuffleArray(questions);
+        state.quiz.index = 0;
+        state.quiz.score = 0;
+        state.quiz.results = [];
+        $('#quizTestName').textContent = 'Tryb błędów';
+        navigate('quiz');
+        renderQuizQuestion();
+    }
+}
+
+/* ──────────────────────────────────────────────────────────
+   MOCK EXAM
+   ────────────────────────────────────────────────────────── */
+function buildCategoryPool(category) {
+    // Returns array of all parsed questions from folders matching this category.
+    const qs = [];
+    category.folderIds.forEach(fid => {
+        const folder = state.folders.find(f => f.id === fid);
+        if (!folder) return;
+        try {
+            const parsed = loadQuestions(folder);
+            parsed.forEach(q => {
+                qs.push({
+                    questionText: q.questionText,
+                    options: q.options,
+                    correctIndexes: q.correctIndexes,
+                    sourceFolderId: folder.id,
+                    sourceFolderTitle: folder.title,
+                    categoryId: category.id,
+                    categoryLabel: category.label
+                });
+            });
+        } catch (_) {}
+    });
+    return qs;
+}
+
+// ── Mock session persistence ────────────────────────────
+function saveMockSession() {
+    if (!state.mock.active) return;
+    try {
+        const remainingMs = Math.max(0, state.mock.endsAt - Date.now());
+        localStorage.setItem(STORAGE.MOCK_SESSION, JSON.stringify({
+            questions: state.mock.questions,
+            answers: state.mock.answers,
+            index: state.mock.index,
+            remainingMs,
+            savedAt: Date.now()
+        }));
+    } catch (_) {}
+}
+function loadMockSession() {
+    try {
+        const raw = localStorage.getItem(STORAGE.MOCK_SESSION);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+function clearMockSession() {
+    localStorage.removeItem(STORAGE.MOCK_SESSION);
+}
+function resumeMockExam() {
+    const saved = loadMockSession();
+    if (!saved) return;
+    state.mock.active = true;
+    state.mock.questions = saved.questions;
+    state.mock.answers = saved.answers || saved.questions.map(() => []);
+    state.mock.index = Math.min(saved.index || 0, saved.questions.length - 1);
+    state.mock.startedAt = Date.now();
+    state.mock.endsAt = Date.now() + Math.max(saved.remainingMs || 0, 1000);
+    state.mock.finishedSummary = null;
+    navigate('mock-run');
+    renderMockQuestion();
+    startMockTimer();
+}
+
+function openMockExamSetup() {
+    // Resume banner
+    const saved = loadMockSession();
+    const banner = $('#mockResumeBanner');
+    if (saved && saved.questions && saved.questions.length > 0) {
+        const minutes = Math.max(1, Math.round(saved.remainingMs / 60000));
+        const answered = (saved.answers || []).filter(a => a && a.length > 0).length;
+        $('#mockResumeInfo').textContent =
+            `Pytanie ${(saved.index || 0) + 1} / ${saved.questions.length} · odpowiedzi: ${answered} · pozostało ok. ${minutes} min`;
+        banner.classList.remove('hidden');
+    } else {
+        banner.classList.add('hidden');
+    }
+
+    // Render breakdown showing how many questions are available per category
+    const wrap = $('#catBreakdown');
+    wrap.innerHTML = '';
+    let totalRequested = 0;
+    let totalAvailable = 0;
+    const warnings = [];
+
+    EXAM_CATEGORIES.forEach(cat => {
+        const pool = buildCategoryPool(cat);
+        totalRequested += cat.count;
+        totalAvailable += Math.min(pool.length, cat.count);
+        if (pool.length < cat.count) {
+            warnings.push(`${cat.label}: w bazie jest ${pool.length} pytań (potrzeba ${cat.count})`);
+        }
+        const row = document.createElement('div');
+        row.className = 'cat-breakdown__row';
+        row.innerHTML = `
+            <span class="cat-breakdown__label"></span>
+            <span class="cat-breakdown__count"></span>
+        `;
+        row.querySelector('.cat-breakdown__label').textContent = cat.label;
+        row.querySelector('.cat-breakdown__count').textContent = `${cat.count} pytań`;
+        wrap.appendChild(row);
+    });
+
+    const tot = document.createElement('div');
+    tot.className = 'cat-breakdown__row cat-breakdown__total';
+    tot.innerHTML = `<span>Łącznie</span><span class="cat-breakdown__count">${totalRequested} pytań</span>`;
+    wrap.appendChild(tot);
+
+    if (warnings.length > 0) {
+        const w = document.createElement('div');
+        w.className = 'cat-breakdown__warn';
+        w.innerHTML = '<strong>Uwaga:</strong> ' + warnings.join(' · ');
+        wrap.appendChild(w);
+    }
+
+    navigate('mock-setup');
+}
+
+function startMockExam() {
+    const deck = [];
+    EXAM_CATEGORIES.forEach(cat => {
+        const pool = shuffleArray(buildCategoryPool(cat));
+        const take = pool.slice(0, cat.count);
+        deck.push(...take);
+    });
+
+    if (deck.length === 0) {
+        showError('Brak pytań w bazie do utworzenia egzaminu próbnego.');
+        navigate('tests');
+        return;
+    }
+
+    clearMockSession();
+    state.mock.active = true;
+    state.mock.questions = deck;
+    state.mock.answers = deck.map(() => []);
+    state.mock.index = 0;
+    state.mock.startedAt = Date.now();
+    state.mock.endsAt = state.mock.startedAt + MOCK_EXAM_MINUTES * 60 * 1000;
+    state.mock.finishedSummary = null;
+
+    navigate('mock-run');
+    renderMockQuestion();
+    startMockTimer();
+    saveMockSession();
+}
+
+function abortMockExam() {
+    if (!confirm('Wyjść z egzaminu? Postęp i zegar zostaną zapisane — możesz wrócić później.')) return;
+    persistMockAnswer();
+    saveMockSession();
+    stopMockTimer();
+    state.mock.active = false;
+    toast('Egzamin zapisany — wróć kiedy chcesz');
+    navigate('tests');
+}
+
+function startMockTimer() {
+    stopMockTimer();
+    updateMockTimer();
+    let tickCount = 0;
+    state.mock.timerId = setInterval(() => {
+        updateMockTimer();
+        tickCount += 1;
+        // Persist remaining time every 10 seconds so resume reflects current state
+        if (state.mock.active && tickCount % 10 === 0) saveMockSession();
+    }, 1000);
+}
+function stopMockTimer() {
+    if (state.mock.timerId) {
+        clearInterval(state.mock.timerId);
+        state.mock.timerId = null;
+    }
+}
+function updateMockTimer() {
+    const remaining = Math.max(0, state.mock.endsAt - Date.now());
+    const mm = Math.floor(remaining / 60000);
+    const ss = Math.floor((remaining % 60000) / 1000);
+    const el = $('#mockTimer');
+    el.textContent = `${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+    el.classList.remove('timer-pill--warn', 'timer-pill--danger');
+    if (remaining < 5 * 60 * 1000 && remaining >= 60 * 1000) el.classList.add('timer-pill--warn');
+    else if (remaining < 60 * 1000) el.classList.add('timer-pill--danger');
+
+    if (remaining === 0) {
+        stopMockTimer();
+        toast('Czas minął — egzamin zakończony');
+        mockSubmit(true);
+    }
+}
+
+function renderMockQuestion() {
+    const q = state.mock.questions[state.mock.index];
+    const total = state.mock.questions.length;
+    $('#mockCounter').textContent = `Pytanie ${state.mock.index + 1} / ${total}`;
+    $('#mockCatBadge').textContent = q.categoryLabel || '';
+    $('#mockProgress').style.width = `${((state.mock.index + 1) / total) * 100}%`;
+
+    $('#mockQuestion').innerHTML = q.questionText;
+    const optsBox = $('#mockOptions');
+    optsBox.innerHTML = '';
+    const saved = state.mock.answers[state.mock.index] || [];
+
+    q.options.forEach((opt, i) => {
+        const lbl = document.createElement('label');
+        lbl.className = 'option';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = i;
+        cb.className = 'mock-input';
+        if (saved.includes(i)) cb.checked = true;
+        cb.addEventListener('change', persistMockAnswer);
+        const sp = document.createElement('span');
+        sp.textContent = opt;
+        lbl.appendChild(cb);
+        lbl.appendChild(sp);
+        optsBox.appendChild(lbl);
+    });
+
+    // Buttons
+    $('#mockPrevBtn').disabled = state.mock.index === 0;
+    $('#mockPrevBtn').style.opacity = state.mock.index === 0 ? .5 : 1;
+    if (state.mock.index === total - 1) {
+        $('#mockNextBtn').classList.add('hidden');
+        $('#mockSkipBtn').classList.add('hidden');
+        $('#mockSubmitBtn').classList.remove('hidden');
+    } else {
+        $('#mockNextBtn').classList.remove('hidden');
+        $('#mockSkipBtn').classList.remove('hidden');
+        $('#mockSubmitBtn').classList.add('hidden');
+    }
+}
+
+function persistMockAnswer() {
+    const inputs = $$('.mock-input');
+    state.mock.answers[state.mock.index] = inputs
+        .filter(i => i.checked)
+        .map(i => Number(i.value));
+    saveMockSession();
+}
+
+function mockGoPrev() {
+    persistMockAnswer();
+    if (state.mock.index > 0) {
+        state.mock.index -= 1;
+        renderMockQuestion();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+function mockGoNext() {
+    persistMockAnswer();
+    if (state.mock.index < state.mock.questions.length - 1) {
+        state.mock.index += 1;
+        renderMockQuestion();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function mockSubmit(forced) {
+    persistMockAnswer();
+
+    if (!forced) {
+        const unanswered = state.mock.answers.filter(a => !a || a.length === 0).length;
+        if (unanswered > 0) {
+            if (!confirm(`Pominąłeś ${unanswered} pytań. Zakończyć egzamin?`)) return;
+        }
+    }
+
+    stopMockTimer();
+    state.mock.active = false;
+
+    // Compute results per question and per category
+    const total = state.mock.questions.length;
+    let score = 0;
+    const perCat = {};
+    EXAM_CATEGORIES.forEach(c => { perCat[c.id] = { label: c.label, total: 0, correct: 0 }; });
+
+    const breakdown = state.mock.questions.map((q, i) => {
+        const sel = state.mock.answers[i] || [];
+        const correctSet = new Set(q.correctIndexes);
+        const selSet = new Set(sel);
+        const ok = correctSet.size === selSet.size && [...correctSet].every(x => selSet.has(x));
+        if (ok) score += 1;
+        if (perCat[q.categoryId]) {
+            perCat[q.categoryId].total += 1;
+            if (ok) perCat[q.categoryId].correct += 1;
+        }
+        // Stats + error pool
+        if (q.sourceFolderId) recordStat(q.sourceFolderId, ok);
+        if (ok) removeError(q);
+        else recordError(q, q.sourceFolderId, q.sourceFolderTitle);
+
+        return { ok, sel, q };
+    });
+
+    state.mock.finishedSummary = { score, total, perCat, breakdown };
+    clearMockSession();
+    renderMockResult();
+    navigate('mock-end');
+}
+
+function renderMockResult() {
+    const { score, total, perCat, breakdown } = state.mock.finishedSummary;
+    const pct = Math.round((score / total) * 100);
+    $('#mockResultScore').textContent = score;
+    $('#mockResultTotal').textContent = total;
+    $('#mockResultSummary').textContent = `${score} / ${total} poprawnych odpowiedzi · ${pct}%`;
+    $('#mockResultKicker').textContent = pct >= 70 ? 'Bardzo dobrze!' : pct >= 50 ? 'Jest nad czym pracować' : 'Wymagana powtórka';
+
+    // Category results
+    const cats = $('#mockCatResults');
+    cats.innerHTML = '';
+    Object.values(perCat).forEach(c => {
+        if (c.total === 0) return;
+        const p = Math.round((c.correct / c.total) * 100);
+        const color = p >= 70 ? 'var(--success)' : p >= 50 ? 'var(--warning)' : 'var(--danger)';
+        const div = document.createElement('div');
+        div.className = 'cat-result';
+        div.innerHTML = `
+            <div class="cat-result__label"></div>
+            <div class="cat-result__score">
+                <span class="cr-num"></span><span class="cat-result__score-sep"> / </span><span class="cr-tot"></span>
+            </div>
+            <div class="cat-result__bar"><div class="cat-result__bar-fill" style="width:${p}%; background:${color};"></div></div>
+        `;
+        div.querySelector('.cat-result__label').textContent = c.label;
+        div.querySelector('.cr-num').textContent = c.correct;
+        div.querySelector('.cr-tot').textContent = c.total;
+        cats.appendChild(div);
+    });
+
+    // Wrong answers list
+    const list = $('#mockEndResults');
+    list.innerHTML = '';
+    const letters = ['a','b','c','d','e','f'];
+    breakdown.forEach((b, i) => {
+        if (b.ok) return;
+        const item = document.createElement('div');
+        item.className = 'result-item result-item--fail';
+        item.innerHTML = `
+            <div class="result-item__header">
+                <span class="result-item__badge">✗</span>
+                <span class="result-item__num">Pyt. ${i + 1}</span>
+                <span class="result-item__question"></span>
+            </div>
+        `;
+        item.querySelector('.result-item__question').innerHTML = b.q.questionText.replace(/<br>/g, ' ');
+        const opts = document.createElement('div');
+        opts.className = 'result-item__options';
+        b.q.options.forEach((opt, oi) => {
+            const row = document.createElement('div');
+            const isCorrect = b.q.correctIndexes.includes(oi);
+            const wasSel = b.sel.includes(oi);
+            row.className = 'result-opt' +
+                (isCorrect ? ' result-opt--correct' : '') +
+                (wasSel && !isCorrect ? ' result-opt--wrong' : '');
+            row.textContent = `${letters[oi]}) ${opt}`;
+            opts.appendChild(row);
+        });
+        item.appendChild(opts);
+        list.appendChild(item);
+    });
+}
+
+/* ──────────────────────────────────────────────────────────
+   HEATMAP
+   ────────────────────────────────────────────────────────── */
+function colorForPct(pct) {
+    if (pct === null) return { color: 'var(--surface-3)', opacity: 0 };
+    // 0-49 red, 50-69 amber, 70-100 green; intensity scales with attempts
+    let color;
+    if (pct >= 70) color = '#10b981';
+    else if (pct >= 50) color = '#f59e0b';
+    else color = '#ef4444';
+    return { color, opacity: 0.18 + (Math.min(pct, 100) / 100) * 0.32 };
+}
+
+function openHeatmap() {
+    renderHeatmap();
+    navigate('heatmap');
+}
+
+function renderHeatmap() {
+    const stats = loadStats();
+
+    // Per-category aggregates
+    const catWrap = $('#heatmapCategories');
+    catWrap.innerHTML = '';
+    EXAM_CATEGORIES.forEach(cat => {
+        let attempted = 0, correct = 0;
+        cat.folderIds.forEach(fid => {
+            const s = stats[fid];
+            if (s) { attempted += s.attempted; correct += s.correct; }
+        });
+        const pct = attempted ? Math.round((correct / attempted) * 100) : null;
+        const { color } = colorForPct(pct);
+
+        const card = document.createElement('div');
+        card.className = 'heatmap-cat';
+        card.innerHTML = `
+            <div class="heatmap-cat__head">
+                <span class="heatmap-cat__title"></span>
+                <span class="heatmap-cat__pct"></span>
+            </div>
+            <div class="heatmap-cat__bar"><div class="heatmap-cat__bar-fill" style="width:${pct ?? 0}%; background:${color};"></div></div>
+            <div class="heatmap-cat__meta"></div>
+        `;
+        card.querySelector('.heatmap-cat__title').textContent = cat.label;
+        card.querySelector('.heatmap-cat__pct').textContent = pct === null ? '—' : `${pct}%`;
+        card.querySelector('.heatmap-cat__meta').textContent = attempted
+            ? `${correct} / ${attempted} poprawnych`
+            : 'Brak prób — rozwiąż jakiś test';
+        catWrap.appendChild(card);
+    });
+
+    // Per-folder grid
+    const grid = $('#heatmapGrid');
+    grid.innerHTML = '';
+    state.folders.forEach(folder => {
+        const s = stats[folder.id];
+        const attempted = s ? s.attempted : 0;
+        const correct = s ? s.correct : 0;
+        const pct = attempted ? Math.round((correct / attempted) * 100) : null;
+        const { color, opacity } = colorForPct(pct);
+
+        const cell = document.createElement('div');
+        cell.className = 'heatmap-cell';
+        cell.style.setProperty('--cell-color', color);
+        cell.style.setProperty('--cell-opacity', opacity);
+        cell.innerHTML = `
+            <div class="heatmap-cell__title"></div>
+            <div class="heatmap-cell__pct"></div>
+            <div class="heatmap-cell__meta"></div>
+        `;
+        cell.querySelector('.heatmap-cell__title').textContent = folder.title;
+        cell.querySelector('.heatmap-cell__pct').textContent = pct === null ? '—' : `${pct}%`;
+        cell.querySelector('.heatmap-cell__meta').textContent = attempted
+            ? `${correct} / ${attempted}`
+            : 'brak prób';
+        grid.appendChild(cell);
+    });
+}
+
+/* ──────────────────────────────────────────────────────────
+   ORAL SIMULATOR
+   ────────────────────────────────────────────────────────── */
+function buildOralPool() {
+    // Combine: curated topics + all trainer items across all materials
+    const pool = [];
+    ORAL_TOPICS.forEach(t => {
+        pool.push({ topic: t.topic, answer: t.answer, source: 'baza tematów' });
+    });
+    MATERIALS.forEach(m => {
+        const items = loadTrainerData(m.id) || [];
+        items.forEach(it => {
+            pool.push({ topic: it.q, answer: it.a, source: m.title });
+        });
+    });
+    return pool;
+}
+
+// ── Oral session persistence ───────────────────────────────
+function saveOralSession() {
+    if (!state.oral.deck || state.oral.deck.length === 0) return;
+    try {
+        localStorage.setItem(STORAGE.ORAL_SESSION, JSON.stringify({
+            deck: state.oral.deck,
+            known: state.oral.known,
+            total: state.oral.total,
+            timerSelect: $('#oralTimerSelect').value,
+            savedAt: Date.now()
+        }));
+    } catch (_) {}
+}
+function loadOralSession() {
+    try {
+        const raw = localStorage.getItem(STORAGE.ORAL_SESSION);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+function clearOralSession() {
+    localStorage.removeItem(STORAGE.ORAL_SESSION);
+}
+
+function openOralSim() {
+    navigate('oral-sim');
+
+    // Resume banner if a saved session has remaining items
+    const saved = loadOralSession();
+    const banner = $('#oralResumeBanner');
+    if (saved && saved.deck && saved.deck.some(it => it.status !== 'known')) {
+        const remaining = saved.deck.filter(it => it.status !== 'known').length;
+        $('#oralResumeInfo').textContent =
+            `Pozostało ${remaining} z ${saved.total} tematów · oznaczone „umiem": ${saved.known}`;
+        banner.classList.remove('hidden');
+        // Don't auto-start; user picks
+        $('#oralEmpty').classList.add('hidden');
+        $('#oralBody').classList.add('hidden');
+    } else {
+        banner.classList.add('hidden');
+        startOralSim();
+    }
+}
+
+function resumeOralSession() {
+    const saved = loadOralSession();
+    if (!saved) { startOralSim(); return; }
+    state.oral.deck = saved.deck;
+    state.oral.known = saved.known || 0;
+    state.oral.total = saved.total || saved.deck.length;
+    state.oral.index = 0;
+    state.oral.revealed = false;
+    if (saved.timerSelect) $('#oralTimerSelect').value = saved.timerSelect;
+    $('#oralResumeBanner').classList.add('hidden');
+    $('#oralBody').classList.remove('hidden');
+    $('#oralEmpty').classList.add('hidden');
+    nextOralTopic();
+}
+
+function startOralSim() {
+    stopOralTimer();
+    clearOralSession();
+    $('#oralResumeBanner').classList.add('hidden');
+    const pool = buildOralPool();
+    const empty = pool.length === 0;
+    $('#oralEmpty').classList.toggle('hidden', !empty);
+    $('#oralBody').classList.toggle('hidden', empty);
+    if (empty) return;
+
+    state.oral.deck = shuffleArray(pool).map(it => ({ it, status: 'pending' }));
+    state.oral.index = 0;
+    state.oral.known = 0;
+    state.oral.total = state.oral.deck.length;
+    state.oral.revealed = false;
+    nextOralTopic();
+}
+
+function nextOralTopic() {
+    stopOralTimer();
+    state.oral.revealed = false;
+    $('#oralAnswer').classList.add('hidden');
+    $('#oralRate').classList.add('hidden');
+    $('#oralRevealBtn').classList.remove('hidden');
+
+    const remaining = state.oral.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0) {
+        $('#oralTopic').textContent = 'Świetnie! Wszystkie tematy oznaczone jako „umiem".';
+        $('#oralSource').textContent = '';
+        $('#oralCounter').textContent = `Temat ${state.oral.total} / ${state.oral.total}`;
+        $('#oralRevealBtn').classList.add('hidden');
+        $('#oralTimerWrap').style.visibility = 'hidden';
+        return;
+    }
+    state.oral.current = remaining[0];
+    $('#oralTopic').textContent = state.oral.current.it.topic;
+    $('#oralSource').textContent = state.oral.current.it.source ? `Źródło: ${state.oral.current.it.source}` : '';
+    $('#oralAnswer').textContent = state.oral.current.it.answer;
+    const idx = state.oral.total - remaining.length;
+    $('#oralCounter').textContent = `Temat ${idx + 1} / ${state.oral.total}`;
+    $('#oralKnown').textContent = `Umiem: ${state.oral.known}`;
+    $('#oralTimerWrap').style.visibility = 'visible';
+
+    // Start timer if set
+    const sec = parseInt($('#oralTimerSelect').value, 10) || 0;
+    if (sec > 0) {
+        state.oral.timeLeft = sec;
+        renderOralTimer(sec, sec);
+        state.oral.timerId = setInterval(() => {
+            state.oral.timeLeft -= 1;
+            renderOralTimer(state.oral.timeLeft, sec);
+            if (state.oral.timeLeft <= 0) {
+                stopOralTimer();
+                if (!state.oral.revealed) oralReveal();
+            }
+        }, 1000);
+    } else {
+        $('#oralTimerWrap').style.visibility = 'hidden';
+    }
+}
+
+function renderOralTimer(left, total) {
+    const C = 339.292;
+    const ratio = total ? Math.max(0, left / total) : 0;
+    const offset = C * (1 - ratio);
+    const fg = $('#oralRingFg');
+    fg.style.strokeDashoffset = offset;
+    fg.classList.remove('is-warn', 'is-danger');
+    if (ratio < 0.33) fg.classList.add('is-danger');
+    else if (ratio < 0.5) fg.classList.add('is-warn');
+    $('#oralTimerText').textContent = Math.max(0, Math.ceil(left));
+}
+
+function stopOralTimer() {
+    if (state.oral.timerId) {
+        clearInterval(state.oral.timerId);
+        state.oral.timerId = null;
+    }
+}
+
+function oralReveal() {
+    stopOralTimer();
+    state.oral.revealed = true;
+    $('#oralAnswer').classList.remove('hidden');
+    $('#oralRevealBtn').classList.add('hidden');
+    $('#oralRate').classList.remove('hidden');
+    $('#oralTimerWrap').style.visibility = 'hidden';
+}
+
+function oralRate(known) {
+    if (!state.oral.current) return;
+    if (known) {
+        state.oral.current.status = 'known';
+        state.oral.known += 1;
+    } else {
+        state.oral.deck = state.oral.deck.filter(it => it !== state.oral.current).concat([state.oral.current]);
+    }
+
+    const remaining = state.oral.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0) clearOralSession();
+    else saveOralSession();
+
+    nextOralTopic();
+}
+
+function oralReset() {
+    // Restart the timer for current topic when user changes the duration
+    if (state.oral.current && !state.oral.revealed) {
+        stopOralTimer();
+        const sec = parseInt($('#oralTimerSelect').value, 10) || 0;
+        if (sec > 0) {
+            state.oral.timeLeft = sec;
+            renderOralTimer(sec, sec);
+            $('#oralTimerWrap').style.visibility = 'visible';
+            state.oral.timerId = setInterval(() => {
+                state.oral.timeLeft -= 1;
+                renderOralTimer(state.oral.timeLeft, sec);
+                if (state.oral.timeLeft <= 0) {
+                    stopOralTimer();
+                    if (!state.oral.revealed) oralReveal();
+                }
+            }, 1000);
+        } else {
+            $('#oralTimerWrap').style.visibility = 'hidden';
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────
+   DIALOG MODE
+   ────────────────────────────────────────────────────────── */
+function loadDialogSession(id) {
+    try {
+        const raw = localStorage.getItem(STORAGE.DIALOG_SESSION(id));
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) { return null; }
+}
+function saveDialogSession(id, data) {
+    try { localStorage.setItem(STORAGE.DIALOG_SESSION(id), JSON.stringify(data)); } catch (_) {}
+}
+function clearDialogSession(id) {
+    localStorage.removeItem(STORAGE.DIALOG_SESSION(id));
+}
+
+function openDialogList() {
+    const list = $('#dialogList');
+    list.innerHTML = '';
+    const done = loadDialogDone();
+    DIALOG_SCRIPTS.forEach((dlg, idx) => {
+        const saved = loadDialogSession(dlg.id);
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'dialog-card';
+        const inProgress = saved && saved.index < dlg.steps.length;
+
+        let progressBadge = '';
+        if (inProgress) {
+            progressBadge = `<span class="dialog-card__progress">W trakcie · pyt. ${saved.index + 1} / ${dlg.steps.length}</span>`;
+        } else if (done[dlg.id]) {
+            progressBadge = `<span class="dialog-card__progress dialog-card__progress--done">Przerobione</span>`;
+        }
+
+        card.innerHTML = `
+            <div class="dialog-card__icon">${idx + 1}</div>
+            <div class="dialog-card__title"></div>
+            <div class="dialog-card__intro"></div>
+            <div class="dialog-card__meta"></div>
+            ${progressBadge}
+        `;
+        card.querySelector('.dialog-card__title').textContent = dlg.title;
+        card.querySelector('.dialog-card__intro').textContent = dlg.intro;
+        card.querySelector('.dialog-card__meta').textContent = `${dlg.steps.length} pytań`;
+        card.addEventListener('click', () => openDialog(dlg.id));
+        list.appendChild(card);
+    });
+    navigate('dialog');
+}
+
+function loadDialogDone() {
+    try {
+        const raw = localStorage.getItem(STORAGE.DIALOG_DONE);
+        return raw ? JSON.parse(raw) : {};
+    } catch (_) { return {}; }
+}
+function saveDialogDone(map) {
+    try { localStorage.setItem(STORAGE.DIALOG_DONE, JSON.stringify(map)); } catch (_) {}
+}
+
+function openDialog(scriptId) {
+    const dlg = DIALOG_SCRIPTS.find(d => d.id === scriptId);
+    if (!dlg) return;
+    state.dialog.scriptId = dlg.id;
+    state.dialog.script = dlg;
+
+    // Resume saved progress
+    const saved = loadDialogSession(scriptId);
+    if (saved && saved.index < dlg.steps.length && (saved.index > 0 || (saved.history && saved.history.length > 0))) {
+        const cont = confirm(`Masz zapisany postęp w „${dlg.title}" (pyt. ${saved.index + 1} / ${dlg.steps.length}).\n\nKontynuować?`);
+        if (cont) {
+            state.dialog.index = saved.index;
+            state.dialog.known = saved.known || 0;
+            state.dialog.history = saved.history || [];
+        } else {
+            clearDialogSession(scriptId);
+            state.dialog.index = 0;
+            state.dialog.known = 0;
+            state.dialog.history = [];
+        }
+    } else {
+        state.dialog.index = 0;
+        state.dialog.known = 0;
+        state.dialog.history = [];
+    }
+    state.dialog.revealed = false;
+
+    $('#dialogTitle').textContent = dlg.title;
+    navigate('dialog-run');
+    renderDialogStep();
+}
+
+function renderDialogStep() {
+    const dlg = state.dialog.script;
+    const total = dlg.steps.length;
+    const cur = dlg.steps[state.dialog.index];
+    state.dialog.revealed = false;
+
+    $('#dialogCounter').textContent = `Pytanie ${state.dialog.index + 1} / ${total}`;
+    $('#dialogKnown').textContent = `Umiem: ${state.dialog.known}`;
+    $('#dialogProgress').style.width = `${(state.dialog.index / total) * 100}%`;
+
+    $('#dialogQuestion').textContent = cur.q;
+    $('#dialogAnswer').textContent = cur.a;
+    $('#dialogAnswerBubble').classList.add('hidden');
+    $('#dialogRevealBtn').classList.remove('hidden');
+    $('#dialogRateYes').classList.add('hidden');
+    $('#dialogRateNo').classList.add('hidden');
+
+    // Stream of past answers
+    const stream = $('#dialogStream');
+    stream.innerHTML = '';
+    state.dialog.history.forEach(h => {
+        const qb = document.createElement('div');
+        qb.className = 'dialog-bubble dialog-bubble--examiner dialog-bubble--past';
+        qb.innerHTML = `<span class="dialog-bubble__role">Egzaminator</span><p class="dialog-bubble__text"></p>`;
+        qb.querySelector('p').textContent = h.q;
+        stream.appendChild(qb);
+        const ab = document.createElement('div');
+        ab.className = 'dialog-bubble dialog-bubble--you dialog-bubble--past';
+        ab.innerHTML = `<span class="dialog-bubble__role">${h.known ? 'Umiem ✓' : 'Powtórz'}</span><p class="dialog-bubble__text"></p>`;
+        ab.querySelector('p').textContent = h.a;
+        stream.appendChild(ab);
+    });
+    stream.scrollTop = stream.scrollHeight;
+}
+
+function dialogReveal() {
+    state.dialog.revealed = true;
+    $('#dialogAnswerBubble').classList.remove('hidden');
+    $('#dialogRevealBtn').classList.add('hidden');
+    $('#dialogRateYes').classList.remove('hidden');
+    $('#dialogRateNo').classList.remove('hidden');
+}
+
+function dialogRate(known) {
+    if (!state.dialog.revealed) return;
+    const dlg = state.dialog.script;
+    const cur = dlg.steps[state.dialog.index];
+    state.dialog.history.push({ q: cur.q, a: cur.a, known });
+    if (known) state.dialog.known += 1;
+
+    if (state.dialog.index < dlg.steps.length - 1) {
+        state.dialog.index += 1;
+        // Persist progress
+        saveDialogSession(dlg.id, {
+            index: state.dialog.index,
+            known: state.dialog.known,
+            history: state.dialog.history,
+            savedAt: Date.now()
+        });
+        renderDialogStep();
+    } else {
+        // Done — clear saved progress, mark as done
+        clearDialogSession(dlg.id);
+        const done = loadDialogDone();
+        done[dlg.id] = Date.now();
+        saveDialogDone(done);
+
+        $('#endTitle').textContent = 'Dialog zakończony';
+        $('#endSummary').textContent = `${dlg.title} · oznaczone jako „umiem": ${state.dialog.known} / ${dlg.steps.length}`;
+        $('#endScore').textContent = state.dialog.known;
+        $('#endTotal').textContent = dlg.steps.length;
+        $('#endResults').innerHTML = '';
+        navigate('end');
+    }
 }
 
 /* ──────────────────────────────────────────────────────────

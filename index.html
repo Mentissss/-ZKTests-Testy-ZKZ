@@ -110,6 +110,37 @@
                 </div>
             </header>
 
+            <div class="action-bar">
+                <button class="action-chip" id="goErrorMode" type="button">
+                    <span class="action-chip__icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                    </span>
+                    <span class="action-chip__body">
+                        <span class="action-chip__title">Tryb błędów</span>
+                        <span class="action-chip__sub">Tylko to, co poszło źle</span>
+                    </span>
+                    <span class="action-chip__badge" id="errorBadge">0</span>
+                </button>
+                <button class="action-chip" id="goMockExam" type="button">
+                    <span class="action-chip__icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </span>
+                    <span class="action-chip__body">
+                        <span class="action-chip__title">Egzamin próbny</span>
+                        <span class="action-chip__sub">60 pytań · 60 minut</span>
+                    </span>
+                </button>
+                <button class="action-chip" id="goHeatmap" type="button">
+                    <span class="action-chip__icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    </span>
+                    <span class="action-chip__body">
+                        <span class="action-chip__title">Heatmapa wiedzy</span>
+                        <span class="action-chip__sub">Mocne i słabe punkty</span>
+                    </span>
+                </button>
+            </div>
+
             <p id="errorMsg" class="error-message hidden" aria-live="polite"></p>
             <p id="loadingMsg" class="status-message" aria-live="polite"></p>
 
@@ -140,6 +171,27 @@
                     <p class="view__sub">Każde opracowanie możesz przeczytać w PDF albo przerobić w trybie trenera (Q&amp;A z własnymi pytaniami).</p>
                 </div>
             </header>
+
+            <div class="action-bar">
+                <button class="action-chip" id="goOralSim" type="button">
+                    <span class="action-chip__icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+                    </span>
+                    <span class="action-chip__body">
+                        <span class="action-chip__title">Symulator ustnego</span>
+                        <span class="action-chip__sub">Losowy temat + timer myślenia</span>
+                    </span>
+                </button>
+                <button class="action-chip" id="goDialog" type="button">
+                    <span class="action-chip__icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </span>
+                    <span class="action-chip__body">
+                        <span class="action-chip__title">Tryb dialogowy</span>
+                        <span class="action-chip__sub">Pytania pogłębiające na temat</span>
+                    </span>
+                </button>
+            </div>
 
             <div class="materials-grid" id="materialsGrid"></div>
         </section>
@@ -329,6 +381,288 @@
                 </div>
 
                 <div class="end-results" id="endResults"></div>
+            </div>
+        </section>
+
+        <!-- ── ERROR MODE ─────────────────────────────────── -->
+        <section id="view-error-mode" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="tests" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Lista testów
+                </button>
+                <span class="runner-bar__title">Tryb błędów</span>
+                <button class="btn btn--ghost btn--sm" id="errorClearBtn" type="button">Wyczyść pulę</button>
+            </div>
+
+            <div class="info-card">
+                <p class="kicker">Powtarzasz tylko to, czego nie umiesz</p>
+                <h2 class="info-card__title">Twoja pula błędów</h2>
+                <p class="info-card__text" id="errorPoolInfo">Liczba pytań w puli: 0</p>
+                <div class="info-card__actions">
+                    <button class="btn btn--primary" id="errorStartBtn" type="button">Rozwiąż quiz z błędami</button>
+                    <button class="btn btn--secondary" id="errorFlashBtn" type="button">Powtórz fiszkami</button>
+                </div>
+                <p class="hint-text" id="errorHint">Najpierw rozwiąż jakikolwiek test — pytania na które źle odpowiesz, trafią tutaj automatycznie.</p>
+            </div>
+
+            <div class="error-list" id="errorList"></div>
+        </section>
+
+        <!-- ── MOCK EXAM SETUP ────────────────────────────── -->
+        <section id="view-mock-setup" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="tests" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Lista testów
+                </button>
+                <span class="runner-bar__title">Egzamin próbny</span>
+                <span></span>
+            </div>
+
+            <div class="resume-banner hidden" id="mockResumeBanner">
+                <div class="resume-banner__icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="resume-banner__body">
+                    <h3>Masz nieukończony egzamin</h3>
+                    <p id="mockResumeInfo"></p>
+                </div>
+                <div class="resume-banner__actions">
+                    <button class="btn btn--primary btn--sm" id="mockResumeBtn" type="button">Kontynuuj</button>
+                    <button class="btn btn--secondary btn--sm" id="mockDiscardBtn" type="button">Zacznij od nowa</button>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <p class="kicker">60 pytań · 60 minut</p>
+                <h2 class="info-card__title">Egzamin próbny</h2>
+                <p class="info-card__text">Losowo dobierane pytania z każdej kategorii. Brak feedbacku w trakcie — wynik dopiero na końcu, z rozbiciem na działy.</p>
+
+                <div class="cat-breakdown" id="catBreakdown"></div>
+
+                <div class="info-card__actions">
+                    <button class="btn btn--primary" id="mockStartBtn" type="button">Rozpocznij egzamin</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── MOCK EXAM RUNNING ──────────────────────────── -->
+        <section id="view-mock-run" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" id="mockAbortBtn" type="button">Przerwij</button>
+                <span class="runner-bar__title">Egzamin próbny</span>
+                <span class="timer-pill" id="mockTimer">60:00</span>
+            </div>
+
+            <div class="progress-strip">
+                <div class="progress-strip__bar" id="mockProgress"></div>
+            </div>
+
+            <div class="runner-meta">
+                <span id="mockCounter">Pytanie 0 / 60</span>
+                <span class="cat-badge" id="mockCatBadge"></span>
+            </div>
+
+            <div class="runner-card">
+                <h2 class="runner-card__question" id="mockQuestion"></h2>
+                <div class="runner-card__options" id="mockOptions"></div>
+            </div>
+
+            <div class="runner-actions">
+                <button class="btn btn--ghost" id="mockPrevBtn" type="button">← Poprzednie</button>
+                <button class="btn btn--secondary" id="mockSkipBtn" type="button">Pomiń</button>
+                <button class="btn btn--primary" id="mockNextBtn" type="button">Następne →</button>
+                <button class="btn btn--primary hidden" id="mockSubmitBtn" type="button">Zakończ egzamin</button>
+            </div>
+            <p class="hint-text">W egzaminie możesz wracać do poprzednich pytań. Wynik poznasz na końcu.</p>
+        </section>
+
+        <!-- ── MOCK EXAM RESULT ───────────────────────────── -->
+        <section id="view-mock-end" class="view view--full">
+            <div class="end-card">
+                <div class="end-card__head">
+                    <div>
+                        <p class="kicker" id="mockResultKicker">Wynik egzaminu próbnego</p>
+                        <h2 id="mockResultTitle">Egzamin zakończony</h2>
+                        <p id="mockResultSummary" class="muted"></p>
+                    </div>
+                    <div class="end-score">
+                        <span id="mockResultScore">0</span>
+                        <span class="end-score__sep">/</span>
+                        <span id="mockResultTotal">60</span>
+                    </div>
+                </div>
+
+                <div class="cat-results" id="mockCatResults"></div>
+
+                <div class="end-actions">
+                    <button class="btn btn--primary" id="mockRetryBtn" type="button">Powtórz egzamin</button>
+                    <button class="btn btn--secondary" id="mockReviewBtn" type="button">Zobacz pytania</button>
+                    <button class="btn btn--ghost" data-view="tests" type="button">Wróć do testów</button>
+                </div>
+
+                <div class="end-results" id="mockEndResults"></div>
+            </div>
+        </section>
+
+        <!-- ── HEATMAP ────────────────────────────────────── -->
+        <section id="view-heatmap" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="tests" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Lista testów
+                </button>
+                <span class="runner-bar__title">Heatmapa wiedzy</span>
+                <button class="btn btn--ghost btn--sm" id="heatmapResetBtn" type="button">Wyczyść statystyki</button>
+            </div>
+
+            <div class="heatmap-legend">
+                <span class="muted">Mniej poprawnych</span>
+                <span class="legend-bar"></span>
+                <span class="muted">Więcej poprawnych</span>
+            </div>
+
+            <div class="heatmap-categories" id="heatmapCategories"></div>
+
+            <h3 class="section-subtitle">Foldery</h3>
+            <div class="heatmap-grid" id="heatmapGrid"></div>
+        </section>
+
+        <!-- ── ORAL SIMULATOR ─────────────────────────────── -->
+        <section id="view-oral-sim" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="materials" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Opracowania
+                </button>
+                <span class="runner-bar__title">Symulator ustnego</span>
+                <span></span>
+            </div>
+
+            <div class="resume-banner hidden" id="oralResumeBanner">
+                <div class="resume-banner__icon">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div class="resume-banner__body">
+                    <h3>Masz zapisaną sesję ustnego</h3>
+                    <p id="oralResumeInfo"></p>
+                </div>
+                <div class="resume-banner__actions">
+                    <button class="btn btn--primary btn--sm" id="oralResumeBtn" type="button">Kontynuuj</button>
+                    <button class="btn btn--secondary btn--sm" id="oralDiscardBtn" type="button">Od nowa</button>
+                </div>
+            </div>
+
+            <div class="oral-controls">
+                <label class="oral-control">
+                    <span>Czas na zastanowienie</span>
+                    <select id="oralTimerSelect">
+                        <option value="0">Wyłączony</option>
+                        <option value="30">30 sekund</option>
+                        <option value="60" selected>60 sekund</option>
+                        <option value="90">90 sekund</option>
+                        <option value="120">120 sekund</option>
+                    </select>
+                </label>
+                <button class="btn btn--secondary btn--sm" id="oralShuffleBtn" type="button">Przetasuj pulę</button>
+            </div>
+
+            <div id="oralEmpty" class="info-card hidden">
+                <p class="kicker">Pula pusta</p>
+                <h2 class="info-card__title">Brak pytań do trenowania</h2>
+                <p class="info-card__text">Najpierw dodaj fiszki w trenerze któregokolwiek opracowania — wszystkie trafiają do wspólnej puli symulatora.</p>
+                <div class="info-card__actions">
+                    <button class="btn btn--primary" data-view="materials" type="button">Otwórz opracowania</button>
+                </div>
+            </div>
+
+            <div id="oralBody">
+                <div class="runner-meta">
+                    <span id="oralCounter">Temat 0 / 0</span>
+                    <span id="oralKnown">Umiem: 0</span>
+                </div>
+
+                <div class="oral-stage">
+                    <div class="oral-topic" id="oralTopic">—</div>
+                    <div class="oral-source muted" id="oralSource"></div>
+
+                    <div class="oral-timer-wrap" id="oralTimerWrap">
+                        <svg class="oral-ring" viewBox="0 0 120 120">
+                            <circle class="oral-ring__bg" cx="60" cy="60" r="54"/>
+                            <circle class="oral-ring__fg" cx="60" cy="60" r="54" id="oralRingFg"/>
+                        </svg>
+                        <div class="oral-timer-text" id="oralTimerText">60</div>
+                    </div>
+
+                    <div class="oral-answer hidden" id="oralAnswer"></div>
+
+                    <div class="oral-actions">
+                        <button class="btn btn--secondary" id="oralRevealBtn" type="button">Pokaż odpowiedź</button>
+                    </div>
+
+                    <div class="oral-rate hidden" id="oralRate">
+                        <button class="btn btn--rate btn--rate-no" id="oralRateNo" type="button">Powtórz</button>
+                        <button class="btn btn--rate btn--rate-yes" id="oralRateYes" type="button">Umiem</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── DIALOG MODE ────────────────────────────────── -->
+        <section id="view-dialog" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="materials" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Opracowania
+                </button>
+                <span class="runner-bar__title">Tryb dialogowy</span>
+                <span></span>
+            </div>
+
+            <p class="view__sub" style="margin-bottom:24px;">Wybierz temat — przejdziesz przez sekwencję pytań, jak na rozmowie z egzaminatorem.</p>
+
+            <div class="dialog-list" id="dialogList"></div>
+        </section>
+
+        <!-- ── DIALOG RUNNING ─────────────────────────────── -->
+        <section id="view-dialog-run" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" id="dialogBackBtn" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Tematy
+                </button>
+                <span class="runner-bar__title" id="dialogTitle"></span>
+                <span></span>
+            </div>
+
+            <div class="progress-strip">
+                <div class="progress-strip__bar" id="dialogProgress"></div>
+            </div>
+
+            <div class="runner-meta">
+                <span id="dialogCounter">Pytanie 0 / 0</span>
+                <span id="dialogKnown">Umiem: 0</span>
+            </div>
+
+            <div class="dialog-stream" id="dialogStream"></div>
+
+            <div class="runner-card" id="dialogCurrentCard">
+                <div class="dialog-bubble dialog-bubble--examiner">
+                    <span class="dialog-bubble__role">Egzaminator</span>
+                    <p class="dialog-bubble__text" id="dialogQuestion"></p>
+                </div>
+
+                <div class="dialog-bubble dialog-bubble--you hidden" id="dialogAnswerBubble">
+                    <span class="dialog-bubble__role">Wzorcowa odpowiedź</span>
+                    <p class="dialog-bubble__text" id="dialogAnswer"></p>
+                </div>
+            </div>
+
+            <div class="runner-actions">
+                <button class="btn btn--secondary" id="dialogRevealBtn" type="button">Pokaż odpowiedź</button>
+                <button class="btn btn--rate btn--rate-no hidden" id="dialogRateNo" type="button">Powtórz</button>
+                <button class="btn btn--rate btn--rate-yes hidden" id="dialogRateYes" type="button">Umiem</button>
             </div>
         </section>
 
