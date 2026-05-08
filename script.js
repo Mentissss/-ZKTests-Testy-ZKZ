@@ -95,7 +95,8 @@ const STORAGE = {
     FC_SESSION:     (id) => `zktest_fc_${id}`,
     MOCK_SESSION:   'zktest_mock_session_v1',
     ORAL_SESSION:   'zktest_oral_session_v1',
-    DIALOG_SESSION: (id) => `zktest_dialog_${id}`
+    DIALOG_SESSION: (id) => `zktest_dialog_${id}`,
+    MOCK_SEEN:      'zktest_mock_seen_v1'
 };
 
 // ── Mock exam categories ─────────────────────────────────
@@ -104,7 +105,7 @@ const EXAM_CATEGORIES = [
         id: 'system_prawa',
         label: 'System prawa',
         count: 8,
-        folderIds: ['Cywilne', 'Różne']
+        folderIds: ['Cywilne']          // 'Różne' przeniesione do MIXED_FOLDERS
     },
     {
         id: 'prawo_celne',
@@ -131,6 +132,9 @@ const EXAM_CATEGORIES = [
         folderIds: ['Kontrola']
     }
 ];
+
+// Foldery z mieszaną tematyką — każde pytanie klasyfikowane na podstawie treści
+const MIXED_FOLDERS = ['Różne'];
 
 const MOCK_EXAM_MINUTES = 60;
 
@@ -1241,8 +1245,9 @@ function quizNext() {
 
 function showQuizEnd() {
     const total = state.quiz.questions.length;
+    const pct = total > 0 ? Math.round((state.quiz.score / total) * 100) : 0;
     $('#endTitle').textContent = 'Koniec quizu!';
-    $('#endSummary').textContent = `${state.selectedFolder.title} · ${state.quiz.score} / ${total} poprawnych odpowiedzi`;
+    $('#endSummary').textContent = `${state.selectedFolder.title} · ${state.quiz.score} / ${total} poprawnych odpowiedzi · ${pct}%`;
     $('#endScore').textContent = state.quiz.score;
     $('#endTotal').textContent = total;
 
@@ -1383,8 +1388,9 @@ function nextFlashcard() {
     const remaining = state.fc.deck.filter(it => it.status !== 'known');
     if (remaining.length === 0) {
         // done
+        const fcPct = state.fc.total > 0 ? Math.round((state.fc.known / state.fc.total) * 100) : 0;
         $('#endTitle').textContent = 'Świetnie!';
-        $('#endSummary').textContent = `${state.selectedFolder.title} · oznaczone jako „umiem": ${state.fc.known} / ${state.fc.total}`;
+        $('#endSummary').textContent = `${state.selectedFolder.title} · oznaczone jako „umiem": ${state.fc.known} / ${state.fc.total} · ${fcPct}%`;
         $('#endScore').textContent = state.fc.known;
         $('#endTotal').textContent = state.fc.total;
         $('#endResults').innerHTML = '';
@@ -1855,13 +1861,133 @@ function openMockExamSetup() {
     navigate('mock-setup');
 }
 
+// ── Mock exam seen-questions helpers ─────────────────────
+function loadMockSeen() {
+    try { return new Set(JSON.parse(localStorage.getItem(STORAGE.MOCK_SEEN)) || []); } catch (_) { return new Set(); }
+}
+function saveMockSeen(seenSet) {
+    try { localStorage.setItem(STORAGE.MOCK_SEEN, JSON.stringify([...seenSet])); } catch (_) {}
+}
+function clearMockSeen() {
+    try { localStorage.removeItem(STORAGE.MOCK_SEEN); } catch (_) {}
+}
+function questionKey(q) {
+    return (q.questionText || '').trim().slice(0, 120);
+}
+
+// ── Content-based question classifier ────────────────────
+// Klasyfikuje pytanie do kategorii na podstawie słów kluczowych w treści.
+// Zwraca categoryId lub null gdy pytanie niejednoznaczne.
+function classifyQuestion(q) {
+    // Normalizacja: małe litery, bez diakrytyków
+    const t = (q.questionText || '').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+    const scores = { podatki: 0, prawo_celne: 0, prawo_karne: 0, kontrola: 0, system_prawa: 0 };
+
+    // ── KONTROLA (sprawdź PRZED prawo_celne — "celno-skarbowy" to kontrola, nie prawo celne)
+    if (/urz[ae]d celno.?skarbow|naczelnik.*celno.?skarbow|celno.?skarbow/.test(t)) scores.kontrola += 4;
+    if (/\bnucs\b/.test(t)) scores.kontrola += 3;
+    if (/szef.*krajowej administracji|szef kas\b/.test(t)) scores.kontrola += 3;
+    if (/dyrektor izby administracji skarbow/.test(t)) scores.kontrola += 3;
+    if (/\bkas\b/.test(t)) scores.kontrola += 2;
+    if (/kontrola celna|kontrola celno|rewizja celna|czynnosci sprawdzaj/.test(t)) scores.kontrola += 2;
+
+    // ── PODATKI
+    if (/ordynacja podatkow|zobowiazanie podatkow|obowiazek podatkow/.test(t)) scores.podatki += 4;
+    if (/zaleglosc podatkow|nadplata|inkasent|platnik/.test(t)) scores.podatki += 3;
+    if (/\bpodatek\b|\bpodatku\b|\bpodatnik[ao]?\b|\bpodatnikiem\b/.test(t)) scores.podatki += 2;
+    if (/\bvat\b|\bakcyz|\bpit\b|\bcit\b/.test(t)) scores.podatki += 2;
+    if (/stawka podatkow|ulga podatkow|interpretacja.*podatkow/.test(t)) scores.podatki += 2;
+
+    // ── PRAWO CELNE
+    if (/prawo celne|procedura celna|zgloszenie celne|sklad celny|dlug celny/.test(t)) scores.prawo_celne += 4;
+    if (/wartosc celna|taryfa celna|klasyfikacja taryfow|nomenklatura|orins/.test(t)) scores.prawo_celne += 4;
+    if (/\bwit\b|\btaric\b|\bisztar\b|\bincoterms\b|\bukc\b/.test(t)) scores.prawo_celne += 4;
+    if (/unijny kodeks celny|eur[.-]1|eur.?med|swiadectwo.*atr|\batr\b/.test(t)) scores.prawo_celne += 3;
+    if (/\bclo\b|\bclowa\b|\bclem\b|\bcelny\b|\bcelna\b|\bcelne\b/.test(t)) scores.prawo_celne += 1;
+
+    // ── PRAWO KARNE
+    if (/\bkks\b|kodeks karny skarbow|przestepstwo skarbow|wykroczenie skarbow/.test(t)) scores.prawo_karne += 4;
+    if (/postepowanie karne|podejrzany|oskarzony|prokurator|tymczasowe aresztowanie/.test(t)) scores.prawo_karne += 3;
+    if (/kara grzywny|mandat karny|wniosek o ukaranie|stawka dzienna/.test(t)) scores.prawo_karne += 3;
+
+    // ── SYSTEM PRAWA
+    if (/\bdyrektywa\b|prawo wspolnotow|prymat prawa|zasada pierwszenstwa/.test(t)) scores.system_prawa += 4;
+    if (/rozporzadzenie.*unijn|unijn.*rozporzadzenie|prawo unijne|traktat.*ue\b/.test(t)) scores.system_prawa += 3;
+    if (/\bkpa\b|kodeks cywilny|postepowanie administracyjne|zrodla prawa/.test(t)) scores.system_prawa += 3;
+    if (/konstytucja/.test(t)) scores.system_prawa += 2;
+
+    const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
+    return best[1] > 0 ? best[0] : null;
+}
+
+// Normalise question text for similarity comparison:
+// lowercase, strip diacritics, remove punctuation, collapse spaces, take first 80 chars
+function questionNorm(q) {
+    return (q.questionText || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')  // strip diacritics
+        .replace(/[^a-z0-9 ]/g, ' ')                       // remove punctuation
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80);
+}
+
 function startMockExam() {
+    const seen = loadMockSeen();
     const deck = [];
-    EXAM_CATEGORIES.forEach(cat => {
-        const pool = shuffleArray(buildCategoryPool(cat));
-        const take = pool.slice(0, cat.count);
-        deck.push(...take);
+    let anyFresh = false;
+
+    // ── Zbuduj pule dodatkowe z folderów mieszanych (klasyfikacja per pytanie)
+    const mixedByCategory = {};
+    EXAM_CATEGORIES.forEach(c => { mixedByCategory[c.id] = []; });
+
+    MIXED_FOLDERS.forEach(folderId => {
+        const folder = state.folders.find(f => f.id === folderId);
+        if (!folder) return;
+        try {
+            loadQuestions(folder).forEach(q => {
+                const catId = classifyQuestion(q);
+                if (catId && mixedByCategory[catId]) {
+                    mixedByCategory[catId].push(q);
+                }
+                // pytania nierozpoznane (catId === null) są pomijane
+            });
+        } catch (_) {}
     });
+
+    EXAM_CATEGORIES.forEach(cat => {
+        // 1. Build full pool for this category (primary folders + classified mixed)
+        const rawPool = shuffleArray([...buildCategoryPool(cat), ...mixedByCategory[cat.id]]);
+
+        // 2. Deduplicate WITHIN category by normalised question text
+        //    (removes near-identical variants that appear across multiple folders)
+        const catNorms = new Set();
+        const deduped = rawPool.filter(q => {
+            const n = questionNorm(q);
+            if (catNorms.has(n)) return false;
+            catNorms.add(n);
+            return true;
+        });
+
+        // 3. Prefer unseen questions; backfill with already-seen if pool runs short
+        const fresh = deduped.filter(q => !seen.has(questionKey(q)));
+        const old   = deduped.filter(q =>  seen.has(questionKey(q)));
+        anyFresh = anyFresh || fresh.length > 0;
+
+        // Ordered list: unseen first, then seen — guarantees we always reach cat.count
+        const ordered = [...fresh, ...old];
+
+        // 4. Take exactly cat.count (or all available if fewer exist)
+        deck.push(...ordered.slice(0, cat.count));
+    });
+
+    // If no fresh questions remain at all, reset seen pool so next exam starts fresh again
+    if (!anyFresh) {
+        clearMockSeen();
+        toast('Przerobiłeś już wszystkie pytania — pula została zresetowana!');
+    }
 
     if (deck.length === 0) {
         showError('Brak pytań w bazie do utworzenia egzaminu próbnego.');
@@ -2033,6 +2159,10 @@ function mockSubmit(forced) {
     });
 
     state.mock.finishedSummary = { score, total, perCat, breakdown };
+    // Persist seen questions so they don't repeat in future exams
+    const seenNow = loadMockSeen();
+    state.mock.questions.forEach(q => seenNow.add(questionKey(q)));
+    saveMockSeen(seenNow);
     clearMockSession();
     renderMockResult();
     navigate('mock-end');
