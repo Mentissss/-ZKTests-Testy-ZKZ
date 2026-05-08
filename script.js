@@ -1,177 +1,356 @@
+/* ──────────────────────────────────────────────────────────
+   ZKTest · v2 (modern rebuild)
+   ────────────────────────────────────────────────────────── */
+
+(() => {
+'use strict';
+
+// ── State ──────────────────────────────────────────────────
 const state = {
     manifest: null,
-    questions: [],
+    folders: [],
     selectedFolder: null,
-    currentQuestionIndex: 0,
-    score: 0,
-    results: [],          // per-question results for summary
-    pendingFolderId: null // folder waiting for continue/fresh decision
+    pendingFolderId: null,
+
+    // Quiz mode
+    quiz: {
+        questions: [],
+        index: 0,
+        score: 0,
+        results: []
+    },
+
+    // Flashcards mode (test-based)
+    fc: {
+        deck: [],          // queue of items
+        seen: 0,
+        known: 0,
+        total: 0,
+        current: null,
+        flipped: false
+    },
+
+    // Trainer (per-material custom flashcards)
+    trainer: {
+        materialId: null,
+        materialTitle: '',
+        items: [],         // { id, q, a }
+        editingId: null,
+        // study sub-state
+        deck: [],
+        current: null,
+        flipped: false,
+        seen: 0,
+        known: 0,
+        total: 0
+    }
 };
 
-const elements = {
-    setup: document.getElementById('setup'),
-    quiz: document.getElementById('quiz'),
-    endScreen: document.getElementById('endScreen'),
-    continueScreen: document.getElementById('continueScreen'),
-    folderGrid: document.getElementById('folderGrid'),
-    specialFolderGrid: document.getElementById('specialFolderGrid'), // DODANE: Nowy grid na testy
-    loadingMsg: document.getElementById('loadingMsg'),
-    errorMsg: document.getElementById('errorMsg'),
-    selectedTestName: document.getElementById('selectedTestName'),
-    progressText: document.getElementById('progressText'),
-    scoreText: document.getElementById('scoreText'),
-    questionTitle: document.getElementById('questionTitle'),
-    optionsContainer: document.getElementById('optionsContainer'),
-    checkBtn: document.getElementById('checkBtn'),
-    nextBtn: document.getElementById('nextBtn'),
-    backToListBtn: document.getElementById('backToListBtn'),
-    retryBtn: document.getElementById('retryBtn'),
-    restartBtn: document.getElementById('restartBtn'),
-    restartQuizBtn: document.getElementById('restartQuizBtn'),
-    finalScore: document.getElementById('finalScore'),
-    finalTotal: document.getElementById('finalTotal'),
-    endSummary: document.getElementById('endSummary'),
-    resultsList: document.getElementById('resultsList'),
-    continueBtn: document.getElementById('continueBtn'),
-    freshStartBtn: document.getElementById('freshStartBtn'),
-    cancelContinueBtn: document.getElementById('cancelContinueBtn'),
-    continueInfo: document.getElementById('continueInfo'),
-    ttsBtn: document.getElementById('ttsBtn'),
-    ttsVoiceSelect: document.getElementById('ttsVoiceSelect'),
-    ttsPreviewBtn: document.getElementById('ttsPreviewBtn')
+const STORAGE = {
+    THEME:        'zktest_theme',
+    SESSION:      (id) => `zktest_session_${id}`,
+    TRAINER:      (id) => `zktest_trainer_${id}`
 };
 
-document.addEventListener('DOMContentLoaded', init);
-elements.checkBtn.addEventListener('click', checkAnswer);
-elements.nextBtn.addEventListener('click', goToNextQuestion);
-elements.backToListBtn.addEventListener('click', showSetupScreen);
-elements.retryBtn.addEventListener('click', retrySelectedTest);
-elements.restartBtn.addEventListener('click', showSetupScreen);
-elements.restartQuizBtn.addEventListener('click', () => {
-    if (state.selectedFolder) startFreshQuiz(state.selectedFolder.id);
-});
-elements.continueBtn.addEventListener('click', onContinueSession);
-elements.freshStartBtn.addEventListener('click', () => {
-    if (state.pendingFolderId) startFreshQuiz(state.pendingFolderId);
-});
-elements.cancelContinueBtn.addEventListener('click', showSetupScreen);
-elements.ttsBtn.addEventListener('click', toggleTTS);
-elements.ttsVoiceSelect.addEventListener('change', () => {
-    localStorage.setItem(TTS_VOICE_KEY, elements.ttsVoiceSelect.value);
-    stopTTS();
-});
-elements.ttsPreviewBtn.addEventListener('click', previewVoice);
-
-// ── PDF modal ──────────────────────────────────────────
-const pdfModal      = document.getElementById('pdfModal');
-const pdfFrame      = document.getElementById('pdfFrame');
-const pdfModalTitle = document.getElementById('pdfModalTitle');
-const pdfModalClose = document.getElementById('pdfModalClose');
-const pdfOpenLink   = document.getElementById('pdfOpenLink');
-const pdfFallback   = document.getElementById('pdfFallback');
-
-document.querySelectorAll('.material-card').forEach((btn) => {
-    btn.addEventListener('click', () => {
-        const src   = btn.dataset.pdf;
-        const title = btn.querySelector('h3').textContent;
-        pdfModalTitle.textContent = title;
-        pdfOpenLink.href = src;
-        pdfFallback.classList.add('hidden');
-        pdfFrame.classList.remove('hidden');
-        pdfFrame.src = src;
-        pdfModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    });
-});
-
-// Fallback: jeśli iframe nie załaduje PDF, pokaż komunikat z linkiem
-pdfFrame.addEventListener('error', () => {
-    pdfFrame.classList.add('hidden');
-    pdfFallback.classList.remove('hidden');
-});
-// Dodatkowe zabezpieczenie: sprawdź czy iframe załadował coś sensownego
-pdfFrame.addEventListener('load', () => {
-    try {
-        // Jeśli src jest pusty, nic nie rób
-        if (!pdfFrame.src || pdfFrame.src === window.location.href) return;
-        pdfFallback.classList.add('hidden');
-        pdfFrame.classList.remove('hidden');
-    } catch (_) {
-        pdfFrame.classList.add('hidden');
-        pdfFallback.classList.remove('hidden');
-    }
-});
-
-function closePdfModal() {
-    pdfModal.classList.add('hidden');
-    pdfFrame.src = '';
-    document.body.style.overflow = '';
-}
-
-pdfModalClose.addEventListener('click', closePdfModal);
-pdfModal.querySelector('.pdf-modal__backdrop').addEventListener('click', closePdfModal);
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !pdfModal.classList.contains('hidden')) {
-        closePdfModal();
-    }
-});
-
-// ── DODANE: DANE TESTÓW SPECJALNYCH ────────────────────
-const SPECIAL_TESTS_DATA = [
+// ── Materials definition ───────────────────────────────────
+const MATERIALS = [
     {
-        id: 'sp_procedury',
-        title: 'Procedury celne',
-        files: [{
-            name: 'Procedury celne.txt',
-            content: `1. W Polsce procedura odwoławcza została określona w:\nPrawie Celnym przez odwołanie do odpowiednich przepisów Ordynacji Podatkowej;\nKodeksie Postępowania Administracyjnego;\nPrawie Administracyjnym.\nX100\n\n2. Decyzje „z urzędu” są wydawane:\nNa wniosek zgłaszającego;\nBez uprzedniego wniosku osoby zainteresowanej;\nZarówno na wniosek jak i bez uprzedniego wniosku osoby zainteresowanej.\nX010\n\n3. Decyzja niekorzystna to:\nDecyzja wydawana na wniosek w pełni go uwzględniająca;\nTylko i wyłącznie decyzja wydana z urzędu\nDecyzja wydana na wniosek nie w pełni go uwzględniająca\nX001\n\n4. Organ celny, wszczynając postępowanie z urzędu:\nWydaje postanowienie o wszczęciu postępowania\nWydaje powiadomienie o wszczęciu postępowania\nNie wydaje żadnego odrębnego aktu administracyjnego o wszczęciu postępowania\nX001\n\n5. Odwołanie od decyzji przysługuje:\nTylko w przypadku decyzji niekorzystnych;\nNiezależnie od rodzaju wydanego rozstrzygnięcia;\nWyłącznie przypadku decyzji wydawanych „na wniosek zainteresowanego”\nX010\n\n6. Przed wydaniem decyzji niekorzystnej organy celne dają wnioskodawcy możliwość przedstawienia stanowiska w terminie:\n14 dni;\n7 dni;\n30 dni.\nX001\n\n7. Odwołanie od decyzji składa się:\nw każdym państwie członkowskim UE;\nw państwie członkowskim, w którym decyzja została wydana\njedynie w Brukseli.\nX010\n\n8. Wydanie decyzji i powiadomienie o niej winno nastąpić w terminie:\n120 dni od daty przyjęcia wniosku;\n30 dni od daty przyjęcia wniosku;\n90 ,dni od daty przyjęcia wniosku.\nX100\n\n9. Publiczna usługa hybrydowa w zakresie doręczeń\njest realizowana prze InPost;\njest realizowana przez Pocztę Polska;\njest aktualnie niedostępna.\nX010\n\n10. Podstawowa forma doręczeń to:\nDoręczenie korespondencji na adres elektroniczny\nDoręczenie w ramach publicznej usługi hybrydowej\nDoręczenie przez awizo.\nX100\n\n11. Niedopełnienie obowiązku zgłoszenia przywozu do Polski środków pieniężnych\nNie podlega żadnej karze;\nPodlega karze grzywny za przestępstwo lub wykroczenie skarbowe;\nPodlega karze ograniczenia wolności.\nX010\n\n12. Decyzja zaczyna obowiązywać:\nZ dniem jej doręczenia lub uznania za doręczoną;\nPo 14 dniach od doręczenia;\nCo do zasady po 30 dniach.\nX100\n\n13. Odwołanie o decyzji w zakresie prawa celnego wnosi się:\nW terminie 30 dni od doręczenia jej stronie;\nW terminie 14 dni od doręczenia jej stronie;\nW terminie 7 dni od doręczenia jej stronie\nX010\n\n14. W Polsce do postępowania w sprawach celnych stosuje się przepisy:\nUstawy Ordynacja podatkowa;\nUstawy Kodeks Postępowania Administracyjnego;\nTylko i wyłącznie Unijnego Kodeksu Celnego\nX100`
-        }]
+        id: 'mat_test_zamk',
+        title: 'Testowe zamknięte',
+        desc: 'Pytania zamknięte z odpowiedziami.',
+        pdf: 'materials/Testowe zamknięte.pdf'
     },
     {
-        id: 'sp_pochodzenie',
-        title: 'Pochodzenie towarów',
-        files: [{
-            name: 'Pochodzenie towarów.txt',
-            content: `1. Pochodzenie towaru udokumentowane poprzez przedstawienie niepreferencyjnego świadectwa pochodzenia pozwala:\nSkorzystać z obniżonej stawki celnej\nSkorzystać z zerowej stawki celnej\nZastosować stawkę celną „erga omnes”.\nX001\n\n2. Strefy wolnego handlu pozwalają na:\nZastosowanie preferencji wynikających ze wzajemnych umów handlowych\nZastosowanie preferencji wynikających z jednostronnych uzgodnień UE\nZastosowanie preferencji na podstawie świadectwa ATR.\nX100\n\n3. Preferencje wynikające z unii celnej oparte są na:\nPochodzeniu towarów\nStatusie celnym towarów\nPochodzeniu i statusie celnym\nX010\n\n4. Ważność świadectwa ATR wynosi:\n4 miesiące\n90 dni\n2 lata\nX100\n\n5. UE zawarła unię celną z:\nTurcją, Andorą i San Marino\nJedynie z Turcją\nTurcją i Szwajcarią\nX100\n\n6. Upoważniony eksporter:\nSporządza deklarację pochodzenia, tylko wtedy gdy wartość towaru przekracza 4000 EUR;\nNie jest związany żadnym limitem wartości produktów pochodzących\nSporządza deklarację o pochodzeniu niepreferencyjnym.\nX010\n\n7. Ogólne zasady pochodzenia preferencyjnego obejmują:\nZasadę bezpośredniego transportu, tożsamości, terytorialności i dokumentowania pochodzenia\nTylko zasadę bezpośredniego transportu i terytorialności\nJedynie zasadę dokumentowania i tożsamości.\nX100\n\n8. REX to :\nsystem zarejestrowanych eksporterów min. w ramach Ogólnego Systemu Preferencji (GSP)\nskrót dot. zasady bezpośredniego transportu\nprodukty całkowicie uzyskane\nX100\n\n9. Świadectwo o niemaniplulowaniu towarem:\nsłuży potwierdzeniu zachowania dozoru celnego dla towarów transportowanych między stronami umowy o wolnym handlu\ndokumentuje preferencyjne pochodzenie towaru\npotwierdza status celny towaru.\nX100\n\n10. „Wystarczające przetwarzanie lub obróbka” to procesy, którym poddawane są:\ntowary unijne by uzyskać status nieunijnych\ntowary niepochodzące by uzyskać status pochodzących\ntowary z krajów trzecich by uzyskać status unijny\nX010\n\n11. EUR 1, EUR-MED to dowody pochodzenia stosowane:\nw GSP\nW strefach wolnego handlu\nW unii celnej\nX010\n\n12. Preferencje jednostronne (GSP) przyznawane są:\nJedynie krajom Afryki\nKrajom rozwijającym się i najsłabiej rozwiniętym\nTurcji, San Marino i Andorze\nX010\n\n13. Umowy o wolnym handlu:\nTo negocjowany, wzajemny system preferencji\nTo przyznawany system preferencji jednostronnych\nOpierają się na unii celnej\nX100\n\n14. Stawka celna stosowana w oparciu o KNU to:\nStawka celna konwencyjna\nStawka celna preferencyjna\nStawka celna obniżona\nX100\n\n15. WIP w Polsce wydaje:\nKażdy NUCS\nDyrektor Krajowej Informacji Skarbowej\nMinister Finansów\nX010\n\n16. Deklaracja o pochodzeniu towaru może być wystawiona :\nJedynie przez upoważnionego eksportera\nTylko i wyłącznie przez nieupoważnionego eksportera\nZarówno przez upoważnionego jak i przez nieupoważnionego eksportera\nX001`
-        }]
+        id: 'mat_ustne',
+        title: 'Ustne',
+        desc: 'Materiały do egzaminu ustnego.',
+        pdf: 'materials/Ustne.pdf',
+        starterTrainer: [
+            { q: 'Czym jest WIT i kto go wydaje w Polsce?', a: 'Wiążąca Informacja Taryfowa — decyzja organu celnego dotycząca taryfikacji towaru. W Polsce wydaje ją Dyrektor Krajowej Informacji Skarbowej.' },
+            { q: 'Wymień ogólne zasady pochodzenia preferencyjnego.', a: 'Zasada bezpośredniego transportu, tożsamości, terytorialności oraz dokumentowania pochodzenia.' },
+            { q: 'Z czego zbudowana jest nomenklatura taryfowa?', a: 'Z sekcji, działów, pozycji i podpozycji. Pozycja HS = 4 cyfry, kod CN = 8 cyfr.' },
+            { q: 'Co stanowi podstawę obliczenia cła?', a: 'Wartość celna towaru (z reguły wartość transakcyjna z dodatkami i wyłączeniami z UKC).' },
+            { q: 'Jaka jest podstawowa metoda ustalania wartości celnej?', a: 'Metoda wartości transakcyjnej — cena faktycznie zapłacona lub należna za towar, z określonymi korektami.' },
+            { q: 'W jakim terminie wnosi się odwołanie od decyzji w zakresie prawa celnego?', a: '14 dni od dnia doręczenia decyzji stronie.' },
+            { q: 'Wymień finansowe organy postępowania przygotowawczego w sprawach KKS.', a: 'M.in. Naczelnik Urzędu Celno-Skarbowego oraz Szef KAS i Dyrektor IAS w określonych sprawach. Straż Graniczna nim NIE jest.' },
+            { q: 'Co to jest REX?', a: 'System zarejestrowanych eksporterów m.in. w ramach Ogólnego Systemu Preferencji (GSP).' }
+        ]
     },
     {
-        id: 'sp_taryfa',
-        title: 'Nomenklatura taryfowa',
-        files: [{
-            name: 'Nomenklatura taryfowa.txt',
-            content: `1. Nomenklatura taryfowa zbudowana jest z:\na) Stawek celnych, wykazu alfabetycznego towarów,\nb) Tylko wykazu alfabetycznego towarów,\nc) Sekcji, działów, pozycji i podpozycji.\nX001\n\n2. Pozycja HS jest określona na poziomie:\na) 4 cyfr,\nb) 6 cyfr,\nc) 10 cyfr.\nX100\n\n3. Oznaczenie AD F/M oznacza we Wspólnej Taryfie Celnej:\na) Dodatkowe cło za cukier,\nb) Dodatkowe cło za mąkę;\nc) Dodatkowe cło za alkohol.\nX010\n\n4. Skrót CN oznacza:\na) Nomenklatura Scalona,\nb) System Zharmonizowany,\nc) Ogólne Reguły Interpretacji Nomenklatury Scalonej.\nX100\n\n5. Dla towaru, o wartości poniżej 700 EUR, o charakterze niehandlowym, przewożonego w bagażu podróżnego stosuje się:\na) Stawkę celną procentową w zależności od kodu towaru;\nb) Ryczałtową stawkę celną w wysokości 2,5 % od wartości\nc) Stawkę celną kwotowa w zależności od masy towaru.\nX010\n\n6. WIT to decyzja organu celnego dot. taryfikacji wydawana w Polsce przez:\na) Dyrektorów Izby Administracji Skarbowej;\nb) Naczelników Urzędów Celno-Skarbowych;\nc) Dyrektora Krajowej Informacji Skarbowej.\nX001\n\n7. Dodatkowe cło za cukier we Wspólnej Taryfie Celnej jest oznaczone skrótem:\na) EA\nb) AD S/Z\nc) AD F/M.\nX010\n\n8. Futerał na broń (pistolet), przewożony wraz z tym pistoletem, nadający się do długotrwałego użytkowania klasyfikuje się:\na) Jako opakowanie jednorazowego użytku;\nb) Wraz z towarem, do pozycji dla pistoletów;\nc) Zgodnie z regułą reguła ORINS 5B.\nX010\n\n9. Reguła 5 ORINS służy do:\na) Klasyfikacji opakowań przewożonych wraz z towarem\nb) Klasyfikacji towaru do odpowiednich podpozycji CN;\nc) Klasyfikacji mieszanin.\nX100\n\n10. Wyroby niegotowe, mające zasadniczy charakter wyrobu gotowego klasyfikuje się zgodnie z :\na) 2a ORINS;\nb) 4 ORINS;\nc) 6 ORINS.\nX100\n\n11. Nomenklatura taryfowa dzieli się na:\na) 5 sekcji;\nb) 21 sekcji;\nc) 99 sekcji.\nX010\n\n12. Do specjalnego użytku przez właściwe organy unijne zarezerwowany jest:\na) Dział 77;\nb) Dział 98 i 99\nc) Dział 102.\nX010\n\n13. Kod CN jest określany przez:\na) 4 cyfry, gdzie dwie pierwsze cyfry to numer działu;\nb) 8 cyfr ;\nc) 2 cyfry, które odnoszą się do numeru działu\nX010\n\n14. Załącznik I do Rozp. Rady 2658/87:\na) Jest publikowany corocznie, nie później niż do 31 października danego roku\nb) Jest aktualizowany raz na 10 lat;\nc) Nie podlega corocznym przeglądom ani aktualizacji.\nX100\n\n15. Element rolny w Taryfie Celnej określany jest:\na) HS\nb) CN\nc) EA.\nX001\n\n16. Tytuły sekcji, działów, poddziałów, przy klasyfikacji towarów mają znaczenie:\na) Prawne;\nb) Wyłącznie orientacyjne;\nc) Najważniejsze.\nX010\n\n17. System ISZTAR:\na) Zawiera nomenklaturę towarową, stawki celne, dane krajowe w zakresie podatków, ograniczenia w imporcie i eksporcie;\nb) Zawiera tylko dodatkowe kody TARIC, np. kody Meursinga;\nc) Zawiera jedynie nomenklaturę TARIC\nX100\n\n18. TARIC to Zintegrowana Taryfa Wspólnot Europejskich która jest:\na) Źródłem prawa UE w zakresie taryfikacji;\nb) Internetową bazą danych prowadzoną przez DG TAXUD,\nc) bazą danych ustanowioną przez Polskie Ministerstwo Finansów.\nX010\n\n19. W nomenklaturze taryfowej ma zastosowanie tzw. zasada stopnia przetworzenia która:\na) Dotyczy tylko towarów rolnych;\nb) Oznacza drogę towaru od surowca, przez półprodukt do produktu gotowego;\nc) Odnosi się do reguł pochodzenia towaru.\nX010\n\n20. Wyroby niekompletne, niegotowe, rozmontowane lub niezmontowane klasyfikuje się:\na) Zgodnie z regułą 2A ORINS;\nb) Jako części towaru gotowego;\nc) W zależności od jego zasadniczego składnika/komponentu\nX100\n\n21. Części ogólnego użytku\na) Klasyfikuje się jako części jednego konkretnego, głównego towaru;\nb) Do własnych pozycji, np.: gwoździe, zatrzaski;\nc) Są nieistotne w procesie klasyfikacji towarowej.\nX010\n\n22. Maszyna, składająca się z kilku maszyn, przeznaczonych do pełnienia dwóch lub więcej funkcji wzajemnie uzupełniających się, taryfikowana jest:\na) Do pozycji zarezerwowanej dla maszyny występującej w nazwie jako główna\nb) Do pozycji odpowiedniej dla maszyny wykonującej podstawową funkcję;\nc) Do pozycji maszyny występującej jako pierwsza we wspólnej taryfie celnej\nX010\n\n23. W procesie klasyfikacji taryfowej zawsze korzystamy z :\na) Pierwszej Ogólnej Reguły Interpretacyjnej\nb) Z każdej reguły ORINS;\nc) Tylko jednej reguły, która odpowiada naszemu towarowi\nX100`
-        }]
+        id: 'mat_taryfikacja',
+        title: 'Taryfikacja - Prosto',
+        desc: 'Zasady klasyfikacji taryfowej.',
+        pdf: 'materials/TARYFIKACJA - Prosto.pdf'
     },
     {
-        id: 'sp_wartosc',
-        title: 'Wartość celna',
-        files: [{
-            name: 'Wartość celna.txt',
-            content: `1. Wartość celna stanowi podstawę:\na) obliczenia cła;\nb) ustalenia statusu celnego towaru;\nc) ustalenia preferencyjnego pochodzenia towaru.\nX100\n\n2. UKC wprowadza kolejność stosowania metod ustalania wartości celnej. Wyjątkiem są:\na) metoda wartości transakcyjnej i towarów identycznych, stosowane zamiennie\nb) metoda dedukcyjna i wartości kalkulowanej, których kolejność może być odwrócona\nc) metoda towarów identycznych i podobnych, których kolejność może być odwrócona.\nX010\n\n3. O podmiotach powiązanych mówimy, gdy:\na) są członkami tej samej rodziny;\nb) gdy kupują towar u tego samego producenta;\nc) są przewoźnikiem i odbiorca towaru.\nX100\n\n4. Do wartości transakcyjnej dodaje się:\na) koszty transportu po ich wprowadzeniu na obszar UE;\nb) prowizje i koszty pośrednictwa;\nc) koszty prac badawczych, inżynieryjnych, przywożonych towarów prowadzone po ich wprowadzeniu na obszar UE.\nX010\n\n5. Do wartości transakcyjnej nie wlicza się:\na) kosztów pośrednictwa;\nb) kosztów transportu po ich wprowadzeniu na obszar celny UE;\nc) kosztów transportu do miejsca wprowadzenia towaru na obszar celny UE.\nX010\n\n6. Reguły INCOTERMS regulują:\na) podział kosztów i ryzyka dostawy między sprzedającym, a kupującym;\nb) podział kosztów między przewoźnikiem, a producentem towaru;\nc) kwestie klasyfikacji towarowej\nX100\n\n7. Podstawą do zakwestionowania zadeklarowanej wartości może być:\na) wątpliwość co do wiarygodności i autentyczności dokumentów, np. faktury;\nb) brak preferencyjnego dowodu pochodzenia towaru;\nc) pewność, że zadeklarowana wartość stanowi całkowitą zapłacona kwotę za towar.\nX100\n\n8. Zgodnie z Rozp. Delegowanym 2015/2446:\na) istnieje 5 metod zastępczych ustalania wartości celnej ;\nb) istnieje 6 metod ustalania wartości celnej towaru;\nc) metody ustalania wartości celnej wskazano w UKC, nie w Rozp. Delegowanym\nX001\n\n9. Którą z poniższych metod ustalania wartości celnej towaru stosuje się w pierwszej kolejności:\na) metoda dedukcyjna;\nb) metoda towarów identycznych;\nc) metoda towarów podobnych\nX010\n\n10. Gdy sprzedaż lub cena towaru są uzależnione od warunków lub świadczeń, których wartości nie można ustalić:\na) nie ma możliwości zastosowania wartości transakcyjnej;\nb) stosuje się metodę ostatniej szansy,\nc) nie można zaimportować towaru.\nX100\n\n11. Honoraria, tantiemy, opłaty licencyjne są dodawane do wartości transakcyjnej:\na) gdy sprzedający domaga się od kupującego takiej płatności jako warunek sprzedaży;\nb) gdy towary mogą być sprzedane bez płatności tych honorariów;\nc) tylko, gdy są wymagane na terenie UE.\nX100\n\n12. Przeliczenia kursu waluty na PLN, na potrzeby ustalenia wartości celnej, dokonuje się na podstawie:\na) kursów dziennych walut obcych;\nb) bieżących kursów średnich walut obcych ogłaszanych przez NBP;\nc) kursów dziennych z dnia przyjęcia zgłoszenia w procedurze dopuszczenia do obrotu.\nX010\n\n13. Koszty robocizny związanej z pakowaniem towaru mogą stanowić element dodawany do wartości transakcyjnej:\na) nie, nigdy\nb) tak, to jeden z możliwych elementów doliczanych do ceny faktycznie zapłaconej lub należnej;\nc) tak, ale tylko w przypadku szklanych butelek.\nX010\n\n14. W sytuacji zakwestionowania wartości transakcyjnej:\na) należy unieważnić zgłoszenie;\nb) wartość celną należy ustalić metodami zastępczymi ustalania wartości celnej;\nc) należy jedynie dokonać weryfikacji faktur w kraju wystawienia.\nX010`
-        }]
+        id: 'mat_baza_opisowych',
+        title: 'Baza opisowych - wszystko',
+        desc: 'Pełna baza pytań opisowych.',
+        pdf: 'materials/BAZA-OPISOWYCH-WSZYSTKO.pdf'
     },
     {
-        id: 'sp_kks',
-        title: 'Test KKS',
-        files: [{
-            name: 'KKS.txt',
-            content: `1. Właściwość rzeczowa NUCS obejmuje:\na) przestępstwa skarbowe i wykroczenia skarbowe,\nb) wskazane w ustawie o KAS przestępstwa z KK oraz wskazane w KKS przestępstwa skarbowe i wykroczenia skarbowe,\nc) wskazane w ustawie o KAS przestępstwa z KK, wskazane w KKS przestępstwa skarbowe i wykroczenia skarbowe oraz czyny zabronione określone w ustawach szczególnych wskazanych w ustawie o KAS a także niektóre wykroczenia z KW i innych ustaw;\nX001\n2. NUCS prowadzi postępowanie przygotowawcze w sprawach o przestępstwa z art. 258, art. 270, art. 270a, art. 271, art. 271a, art. 273, art. 277a, art. 286 § 1 oraz art. 299 KK, gdy:\na) wartość przedmiotu przestępstwa stanowi mienie wielkiej wartości i zostały ujawnione przez organy KAS\nb) zostały ujawnione przez SCS i w związku z nimi nastąpiło uszczuplenie lub narażenie na uszczuplenie należności publicznoprawne\nc) zostały ujawnione przez KAS i w związku z nimi nastąpiło uszczuplenie lub narażenie na uszczuplenie należności publicznoprawnej,\nX001\n3. NUCS prowadzi postępowanie o czyny zabronione z ustaw szczególnych, gdy:\na) czyn został ujawniony przez KAS,\nb) przestępstwo skarbowe, wykroczenie lub przestępstwo zostało ujawnione przez SCS.\nc) przestępstwo lub wykroczenie zostało ujawnione przez SCS\nX001\n4. Finansowym organem postępowania przygotowawczego jest:\na) Krajowa Administracja Skarbowa\nb) Dyrektor Izby Administracji Skarbowej\nc) Naczelnik Urzędu Celno-Skarbowego\nX001\n5. Finansowym organem postępowania przygotowawczego nie jest:\na) Straż Graniczna\nb) Naczelnik Urzędu Celno-Skarbowego\nc) Szef Krajowej Administracji Skarbowej\nX100\n\n1. Jeżeli przepis części szczególnej KKS określa, że dany czyn zagrożony jest karą „pozbawienia wolności" bez wskazania jej wymiaru, to trwa ona:\na) najkrócej 5 dni, najdłużej 5 lat,\nb) najkrócej 5 dni, najdłużej 3 lata,\nc) od 6 miesięcy do 8 lat;\nX100\n2. Kara grzywny za przestępstwo skarbowe określana jest w stawkach dziennych, w wymiarze:\na) od 10 do 540,\nb) od 10 do 720,\nc) od 10 do 2000;\nX010\n3. Jeżeli przepis części szczególnej KKS posługuje się terminem „ustawowy próg" oznacza to, że czyn taki jest:\na) wykroczeniem zagrożonym karą grzywny w granicach od jednej dziesiątej do dwudziestokrotnej wysokości minimalnego wynagrodzenia\nb) wykroczeniem skarbowym zagrożonym karą w granicach od jednej dziesiątej do pięciokrotnej wysokości minimalnego wynagrodzenia,\nc) wykroczeniem skarbowym zagrożonym karą grzywny wyrażoną kwotowo;\nX001\n4. Wykroczeniem skarbowym jest niezgłoszenie organom celnym wywozu lub wwozu do/z Unii Europejskiej środków pieniężnych jeżeli ich wartość/równowartość:\na) nie przekracza kwoty małej wartości,\nb) jest równa lub wyższa 10.000 euro,\nc) a) i b),\nX001\n5. Kara grzywny za wykroczenie skarbowe wymierzana jest kwotowo w granicach:\na) od jednej dziesiątej do dwudziestokrotnej wysokości minimalnego wynagrodzenia,\nb) od jednej dziesiątej do pięciokrotnej wysokości minimalnego wynagrodzenia,\nc) od jednej dziesiątej do dziesięciokrotnej wysokości minimalnego wynagrodzenia.\nX010\n\n1. Zgodnie z definicją w ustawie Prawo własności przemysłowej, znakiem towarowym podrobionym jest:\na) użyty bezprawnie znak identyczny lub taki, który nie może być odróżniony w zwykłych warunkach obrotu od znaków zarejestrowanych, dla towarów objętych prawem ochronnym,\nb) użyty nielegalnie znak tożsamy lub taki, który nie może być odróżniony w warunkach gospodarczych od znaków zarejestrowanych, dla innych towarów objętych prawem ochronnym,\nc) użyty nielegalnie znak tożsamy lub taki, który nie może być odróżniony w warunkach gospodarczych od znaków zarejestrowanych, dla innych towarów objętych prawem ochronnym, przez konsumenta;\nX100\n2. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione, a polega na:\na) przygotowaniu do przywozu do Polski środków odurzających wbrew przepisom ustawy o przeciwdziałaniu narkomanii,\nb) udzielaniu innej osobie środka odurzającego wbrew przepisom ustawy o przeciwdziałaniu narkomanii,\nc) uprawie krzewu konopi indyjskich wbrew przepisom ustawy o przeciwdziałaniu narkomanii;\nX100\n3. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione, a polega na:\na) prowadzeniu reklamy lub promocji substancji psychotropowych wbrew przepisom ustawy o przeciwdziałaniu narkomanii,\nb) kradzieży środków odurzających,\nc) przewozie przez terytorium Polski substancji psychotropowych wbrew przepisom ustawy o przeciwdziałaniu narkomanii;\nX001\n4. Z której ustawy występki są ścigane na wniosek:\na) Ustawy Prawo Własności Przemysłowej i Ustawy o ochronie przyrody,\nb) Ustawy o przeciwdziałaniu narkomani i Ustawy o prawie autorskim i prawach pokrewnych,\nc) Ustawy Prawo Własności Przemysłowej i Ustawy o prawie autorskim i prawach pokrewnych;\nX001\n5. W której ustawie znajdują się czyny zabronione zarówno jako zbrodnia jak i wykroczenie, których ściganie jest we właściwości rzeczowej NUCS:\na) Ustawie o wyrobie alkoholu etylowego oraz wytwarzaniu wyrobów tytoniowych,\nb) Ustawie o przeciwdziałaniu narkomani,\nc) Ustawie o bezpieczeństwie obrotu prekursorami materiałów wybuchowych.\nX010\n6. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione a polega na:\na) dokonywaniu obrotu towarem z podrobionym znakiem towarowym,\nb) przypisaniu sobie autorstwa,\nc) zgłoszeniu cudzego wynalazku w celu uzyskania patentu, nie będąc do tego uprawnionym\nX100\n\n1. Organy KAS ujawniły „fabrykę pustych faktur", które przez szereg firm zostały wykorzystane do wyłudzenia podatku Vat. W sprawie wszczęto postępowanie przygotowawcze o przestępstwo z art. 271a § 1 KK w zb z art. 76 § 1 KKS i art. 62 § 2 KKS w zw. z art. 8 § 1 KKS, nadzór nad tym postępowaniem sprawuje:\na) DIAS jeżeli jest prowadzone w formie dochodzenia a prokurator jeśli jest prowadzone w formie śledztwa,\nb) Zawsze prokurator,\nc) Prokurator ale gdy mamy do czynienia ze zorganizowaną grupą przestępczą,\nX010\n2. Ujawniono przypadek wystawienia faktur, poświadczających nieprawdę co do okoliczności faktycznych mogących mieć znaczenie dla określenia wysokości należności publicznoprawnej. Powyższe należy zakwalifikować jako przestępstwo z art. 271a KK gdy,\na) Faktury zawierają kwotę należności ogółem, której łączna wartość jest znaczna,\nb) Prokurator tak postanowi;\nc) Faktury zawierają kwotę podatku, której wartość jest wielka,\nX100\n3. Wskaż przypadek „idealnego zbiegu" czynów zabronionych i stosowania art. 8 § 1 KKS:\na) Art. 62 § 2 KKS w zbiegu z art. 271a KK,\nb) Art. 62 § 2 KKS w zbiegu z art. 76 § 2 KKS,\nc) Art. 271a KK w zbiegu z art. 258 KK,\nX100\n4. Jako zbrodnie (potocznie określane „zbrodniami vatowskimi lub fakturowymi") kwalifikowane są następujące przestępstwa:\na) art. 270a § 2 KK, art. 271a § 2 KK i art. 277a § 1 KK,\nb) art. 62 § 2 KKS w zbiegu z art. 76 § 1 KKS,\nc) W sprawach gospodarczych zbrodnie nie występują, są zarezerwowane dla najcięższych przestępstw (morderstwo, handel narkotykami na wielką skalę itp.),\nX100\n5. Czy w KKS występują przestępstwa kwalifikowane jako zbrodnie?\na) Tak jeśli uszczuplono podatek w kwocie której wartość jest wielka,\nb) Nie\nc) Nie, chyba że kwota uszczuplonego podatku przekracza 200.000 zł\nX010\n\n1. Określenie „znaczna wartość" jest pojęciem związanym z:\na) Prawem karnym skarbowym\nb) Prawem karnym\nc) Kodeksem Wykroczeń\nX010\n2. Jednym ze sposobów wszczęcia dochodzenia jest:\na) sporządzenie notatki służbowej,\nb) zatwierdzenie przez prokuratora rejonowego przeprowadzonego wcześniej przeszukania,\nc) przeszukanie wykonane w granicach koniecznych dla zabezpieczenia śladów i dowodów przestępstwa skarbowego.\nX001\n3. Jakiej czynności nie wykonujemy w trybie art. 308 kpk\na) przeszukania\nb) tymczasowego zajęcia mienia ruchomego\nc) końcowego zaznajomienia z materiałem dowodowym\nX001\n4. Określenie „znaczna wartość" oznacza mienie, którego wartość w chwili czynu zabronionego:\na) Nie przekracza 200 tyś. zł\nb) Jest równa 200 tyś zł\nc) Przekracza 200 tyś zł\nX001\n5. Określenie „duża wartość" jest pojęciem:\na) Prawa karnego skarbowego i zachodzi gdy wartość uszczuplonego podatku przekracza 200 x minimalnego wynagrodzenia\nb) Prawa karnego skarbowego i zachodzi gdy wartość uszczuplonego podatku przekracza 500 x minimalnego wynagrodzenia\nc) Prawa karnego i zachodzi gdy wartość uszczuplonego podatku przekracza 500 x minimalnego wynagrodzenia\nX010\n6. Przesłuchanie osoby podejrzanej w trybie art. 308 § 2 kpk zaczyna się od:\na) Pytania o przebieg zdarzenia\nb) Informacji o treści zarzutu wpisanego do protokołu przesłuchania podejrzanego\nc) Zapoznania jej z treścią postanowienia o przedstawieniu zarzutów\nX010\n7. Czynności w niezbędnym zakresie (prowadzone w trybie art. 308 kpk) mogą być wykonywane w ciągu:\na) 5 dni od dnia pierwszej czynności\nb) 14 dni od dnia pierwszej czynności\nc) 7 dni od dnia pierwszej czynności\nX100\n8. Celem dochodzenia prowadzonego w niezbędnym zakresie (art. 308 kpk) jest:\na) ustalenie, czy zachodzi podejrzenie popełnienia przestępstwa,\nb) przyjęcie wniosku o ściganie,\nc) zabezpieczenie śladów i dowodów przestępstwa przed ich utratą\nX001\n9. W razie złożenia wniosku o ściganie niektórych tylko sprawców, obowiązek ścigania obejmuje:\na) również inne osoby, których czyny pozostają w ścisłym związku z czynem osoby wskazanej we wniosku, o czym należy uprzedzić składającego wniosek,\nb) inne osoby, których czyny są związane z czynem osoby wskazanej we wniosku, o czym nie należy uprzedzać składającego wniosek,\nc) obejmuje inne osoby, których czyny nie muszą być związane z czynem osoby wskazanej we wniosku, o czym nie należy uprzedzić składającego wniosek.\nX100\n10. Wniosek o ściganie może zostać cofnięty w postępowaniu przygotowawczym za zgodą prokuratora a w postępowaniu sądowym:\na) Za zgodą prokuratora - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej,\nb) Za zgodą sądu - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej, jeżeli nie sprzeciwi się temu pokrzywdzony,\nc) Za zgodą sądu - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej, jeżeli nie sprzeciwi się temu oskarżyciel publiczny obecny na rozprawie lub posiedzeniu.\nX001\n\n1. Jeżeli dane istniejące w chwili wszczęcia dochodzenia lub zebrane w jego toku uzasadniają dostatecznie podejrzenie, że czyn popełniła określona osoba:\na) sporządza się postanowienie o przedstawieniu zarzutów, niezwłocznie ogłaszano je podejrzanemu i przesłuchano go w charakterze podejrzanego,\nb) wydaje się postanowienie o przedstawieniu zarzutów, ogłasza je podejrzanemu i przesłuchuje go w charakterze podejrzanego\nc) wydaje się postanowienie o przedstawieniu zarzutów, niezwłocznie ogłasza je podejrzanemu i przesłuchuje go w charakterze podejrzanego;\nX001\n2. Za podejrzanego uważa się osobę:\na) co do której wydano postanowienie o przedstawieniu zarzutów albo której bez wydania takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze podejrzanego,\nb) co do której wydano postanowienie o przedstawieniu zarzutów albo której bez wydania takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze osoby podejrzanej,\nc) której ogłoszono postanowienie o przedstawieniu zarzutów albo której bez takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze podejrzanego;\nX100\n3. Stronami postępowania przygotowawczego w sprawach o przestępstwo skarbowe są:\na) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz pokrzywdzony\nb) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz interwenient.\nc) podejrzany, pokrzywdzony oraz interwenient.\nX010\n4. Stroną postępowania przygotowawczego w sprawach o wykroczenie skarbowe nie jest:\na) podmiot pociągnięty do odpowiedzialności posiłkowej,\nb) podejrzany,\nc) Interwenient\nX100\n5. Stronami postępowania przygotowawczego w sprawach o przestępstwo są:\na) podejrzany oraz pokrzywdzony\nb) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz interwenient.\nc) podejrzany, pokrzywdzony oraz interwenient.\nX100\n6. Z tytułu sprawowanego nadzoru prokurator może w szczególności:\na) przejąć sprawę do swego prowadzenia;\nb) zmieniać i uchylać postanowienia i zarządzenia wydane przez prowadzącego postępowanie\nc) obie odpowiedzi są prawidłowe\nX001\n7. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce gdy:\na) podejrzany nie ukończył 18 lat;\nb) podejrzany jest głuchy, niemy lub niewidomy;\nc) obie odpowiedzi są prawidłowe\nX001\n8. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce gdy:\na) zachodzi uzasadniona wątpliwość, czy zdolność podejrzanego rozpoznania znaczenia czynu lub kierowania swoim postępowaniem nie była w czasie popełnienia tego czynu wyłączona lub w znacznym stopniu ograniczona;\nb) zachodzi uzasadniona wątpliwość, czy stan jego zdrowia psychicznego pozwala na udział w postępowaniu lub prowadzenie obrony w sposób samodzielny oraz rozsądny.\nc) obie odpowiedzi są prawidłowe\nX001\n9. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o wykroczenie skarbowe ma miejsce\na) jeżeli prokurator, powołuje biegłego lekarza psychiatrę,\nb) gdy postępowanie prowadzone jest w formie śledztwa,\nc) obie odpowiedzi są błędne;\nX001\n10. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce\na) gdy sąd zastosował tymczasowe aresztowanie podejrzanego,\nb) gdy podejrzany nie ma polskiego obywatelstwa,\nc) obie odpowiedzi są prawidłowe\nX100\n\n1. Jeżeli zatrzymanie rzeczy w trybie art. 308 kpk odbyło się przymusowo, ustawowy termin doręczenia postanowienia prokuratora o zatwierdzeniu tej czynności wynosi:\na) 7 dni,\nb) 14 dni,\nc) 5 dni;\nX100\n2. Jeżeli zatrzymanie rzeczy w trybie art. 308 kpk odbyło się dobrowolnie ale uprawniony złożył wniosek o doręczenie mu, postanowienia prokuratora o zatwierdzeniu tej czynności, ustawowy termin doręczenia wynosi:\na) 7 dni,\nb) 14 dni,\nc) Nie jest określony;\nX010\n3. Ustawowy termin do zatwierdzenia przez prokuratora przeszukania dokonanego w trybie art. 308 kpk wynosi:\na) 7 dni,\nb) 14 dni,\nc) 5 dni;\nX100\n4. Oględzin lub badań ciała, które mogą wywołać uczucie wstydu, zgodnie z kpk:\na) powinna dokonać osoba tej samej płci, chyba że łączą się z tym szczególne trudności,\nb) musi zawsze dokonać osoba tej samej płci\nc) Sytuacja ta nie jest unormowana przez kpk\nX100\n5. Zatrzymane rzeczy należy niezwłocznie zwrócić, jeżeli zatrzymanie rzeczy (lub przeszukanie) nastąpiło bez uprzedniego polecenia prokuratora, a w ciągu 7 dni od dnia czynności nie nastąpiło zatwierdzenie tej czynności, chyba że rzeczy wydano dobrowolnie, a osoba uprawniona nie złożyła wniosku o doręczenie jej:\na) postanowienia prokuratora w przedmiocie zatwierdzenia czynności,\nb) postanowienia Dyrektora IAS w przedmiocie zatwierdzenia czynności,\nc) postanowienia NUCS w przedmiocie zatwierdzenia czynności.\nX100\n\n1. Zatrzymanego należy natychmiast zwolnić jeżeli:\na) w ciągu 48 godzin od chwili zatrzymania przez uprawniony organ nie zostanie on przekazany do dyspozycji sądu wraz z wnioskiem o zastosowanie tymczasowego aresztowania,\nb) w ciągu 24 godzin od przekazania go do dyspozycji sądu nie doręczono mu postanowienia o zastosowaniu wobec niego tymczasowego aresztowania albo nie ogłoszono mu tego postanowienia na posiedzeniu,\nc) obie odpowiedzi są prawidłowe;\nX001\n2. Jeżeli zachowanie osoby zatrzymanej wskazuje na to, że jest ona pod wpływem alkoholu lub innego podobnie działającego środka albo z innych powodów ma zakłóconą świadomość:\na) osobę taką odsyła się do izby wytrzeźwień,\nb) osobę taką poddaje się niezwłocznie badaniu lekarskiemu,\nc) sytuacja ta nie jest unormowana przez kpk;\nX010\n3. Zatrzymanego należy zwolnić jeżeli:\na) lekarz nie wyrazi zgody na zatrzymanie lub osadzenie w pomieszczeniach dla osób zatrzymanych,\nb) ustanie przyczyna zatrzymania a także na polecenie sądu lub prokuratora,\nc) obie odpowiedzi są prawidłowe;\nX001\n4. Zatrzymanemu przysługuje prawo do wniesienia, w terminie:\na) 7 dni od dnia zatrzymania, zażalenia na zatrzymanie do sądu rejonowego właściwego ze względu na miejsce zatrzymania lub prowadzenia postępowania,\nb) 14 dni od dnia zatrzymania, zażalenia na sposób przeprowadzenia zatrzymania do prokuratora właściwego ze względu na miejsce zatrzymania,\nc) obie odpowiedzi są prawidłowe;\nX100\n5. Funkcjonariusz dokonujący zatrzymania nie jest zobowiązany do:\na) sprawdzenia czy osoba zatrzymana posiada przy sobie broń, inne niebezpieczne przedmioty oraz ich odebrania,\nb) ustalenia tożsamości osoby zatrzymanej,\nc) przesłuchania osoby zatrzymanej na okoliczność zatrzymania\nX001`
-        }]
+        id: 'mat_pochodzenie',
+        title: 'Pochodzenie',
+        desc: 'Pochodzenie towarów i preferencje.',
+        pdf: 'materials/Pochodzenie.pdf'
+    },
+    {
+        id: 'mat_skrocony',
+        title: 'Skrócony skrypt',
+        desc: 'Najważniejsze definicje w pigułce.',
+        pdf: 'materials/Skrócony skrypt .pdf'
     }
 ];
 
-function init() {
-    setStatus('Ładowanie listy testów...');
-    hideError();
+// ── Special tests data (lazy — content defined at bottom) ─
+function buildSpecialTestsData() {
+    return [
+        { id: 'sp_procedury',   title: 'Procedury celne',       files: [{ name: 'Procedury celne.txt',       content: SP_CONTENT.procedury }]},
+        { id: 'sp_pochodzenie', title: 'Pochodzenie towarów',   files: [{ name: 'Pochodzenie towarów.txt',   content: SP_CONTENT.pochodzenie }]},
+        { id: 'sp_taryfa',      title: 'Nomenklatura taryfowa', files: [{ name: 'Nomenklatura taryfowa.txt', content: SP_CONTENT.taryfa }]},
+        { id: 'sp_wartosc',     title: 'Wartość celna',         files: [{ name: 'Wartość celna.txt',         content: SP_CONTENT.wartosc }]},
+        { id: 'sp_kks',         title: 'Test KKS',              files: [{ name: 'KKS.txt',                   content: SP_CONTENT.kks }]}
+    ];
+}
 
-    try {
-        if (!window.ZKTEST_DATA) {
-            window.ZKTEST_DATA = { folders: [] };
+// ── External links data (unchanged) ───────────────────────
+const EXTERNAL_LINKS = [
+    { category: 'Podatki i prawo podatkowe', links: [
+        { title: 'System podatkowy - test',         url: 'https://docs.google.com/forms/d/e/1FAIpQLSdnC0eIeiGGS8WB6bIuvL2vjaldRbLj0MQm3QXEqAXFabOHtQ/viewform' },
+        { title: 'Podatki 1',                       url: 'https://docs.google.com/forms/d/e/1FAIpQLSc7gzAz6A0xhI_qOtuH_49K8_srYu5F4UBB3jfekf8JS1cnPw/viewform' },
+        { title: 'Podatki 2',                       url: 'https://docs.google.com/forms/d/e/1FAIpQLSemqr5ZoDMlyAoExbtPdFLzM4mkr65g4MKDbAF6AYjO3PnKWw/viewform' },
+        { title: 'Prawo Podatkowe zbiór z kartek',  url: 'https://docs.google.com/forms/d/e/1FAIpQLScYY3FVX2oJrh7WjhbDOkXELepED9pGhtl9eAcivrWMM2l-FQ/viewform' }
+    ]},
+    { category: 'Karny i KKS', links: [
+        { title: 'Karny',                url: 'https://docs.google.com/forms/d/e/1FAIpQLSfrrhE6z5ftwFCIDBiU3ILtl0m-GYs2ZEbfP2W3FpzP_CKbGQ/viewform' },
+        { title: 'ZKZ Test 2',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSc18ILi74wkbRQUQVbu_DvjXq8rZnRcdDGM1ibev5IWfjJgZQ/viewform' },
+        { title: 'ZKZ TEST 3',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSd0izfPsMr5wG9eZXRFQZNaBibqD3V_SEbrI4xkNUOhfwXHyA/viewform' },
+        { title: 'ZKZ TEST 4',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSfnvWngpXliewjznj_U_0-HIfBKlsAl-tMpgfYLKi3PeLmP5g/viewform' },
+        { title: 'TEST 2 (02/2025)',     url: 'https://docs.google.com/forms/d/e/1FAIpQLSfDvLvGWCMz3ikF7ZlwzPoIqfy6EJgPeL77fWj3w6EtMRZPvQ/viewform' },
+        { title: 'TEST 4',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSfqj6HsqC-zTZCcnIt8jQ5EO_TRa44VRENBeqB9AZzKIsajKg/viewform' },
+        { title: 'ZKZ TEST 6',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSccQszO4BqBzhV14_GWLhsM-xu9zPvCt3k1nxzniTK9yVJG9Q/viewform' },
+        { title: 'TEST 7',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSeG8FCoJL-41cVH5eEe6N4RPKfshlTKE9mcV_hQIQXXgFBKhg/viewform' },
+        { title: 'TEST 9',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSflah2TsDHh_KpG3pC18-m1rT8smxXK6GjUlgEZ9KmNQXZcPA/viewform' },
+        { title: 'ZKZ TEST 10',          url: 'https://docs.google.com/forms/d/e/1FAIpQLSfSD7ByYEeVvRpmnIlRGAX-mpA9AAy9e0McJVmcfR7_GDrJTw/viewform' },
+        { title: 'ZKZ TEST 11',          url: 'https://docs.google.com/forms/d/e/1FAIpQLSchEhGDlnxd9X7QRYz29sNb0SAVViB8RAVEmYNfccLSSbwjzQ/viewform' },
+        { title: 'ZKZ TEST Podsumowanie',url: 'https://docs.google.com/forms/d/e/1FAIpQLSdBH-D85ZXNrqc9JWlXl2WuO2Oztyq7GlOT-6cC7TQqop5RIg/viewform' },
+        { title: 'KKS',                  url: 'https://docs.google.com/forms/d/e/1FAIpQLSdn3HSfEKF3jxC0HCUAlLTqBIieyWT7ks3G9iINgiYWBJz24A/viewform' },
+        { title: 'KKS dodatkowe - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfNliI3zqCJIhnE14CL9BwMrMXSXmQt-XPugHMEnfOuyZ9BXA/viewform' }
+    ]},
+    { category: 'Ograniczenia', links: [
+        { title: 'Ograniczenia część 1', url: 'https://docs.google.com/forms/d/e/1FAIpQLSdh93loTvC9F9QPF3kOZNkkI7IA0vVaUIYlmTfT1AwMmNHl-w/viewform' },
+        { title: 'Ograniczenia część 2', url: 'https://docs.google.com/forms/d/e/1FAIpQLSegSbyiIUcGwz7P4zJOtfPypoXu9L-qxCO8nAJuTj3xcfuX3Q/viewform' }
+    ]},
+    { category: 'Komunikacja', links: [
+        { title: 'Komunikacja - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfgTkSYSXf7UJyDnWlfuHKtK5LaQQaq0pAKi-ndgAog0zGKhA/viewform' }
+    ]},
+    { category: 'Kontrola', links: [
+        { title: 'Kontrola - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLScKKl7gn2K4zOIIPjQNPVP9IQKYzx4xEpy-x0S_DRp3bUhvQw/viewform' }
+    ]},
+    { category: 'Akcyza', links: [
+        { title: 'Akcyza - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSe2McMym6LLbRUi0DiQdF759Qv3-FBA9pKbWSlztjNrdQDnrQ/viewform' }
+    ]},
+    { category: 'Prawo celne i procedury celne', links: [
+        { title: 'Procedury Celne - zagadnienia ogólne',              url: 'https://docs.google.com/forms/d/e/1FAIpQLSfEY7iGXj36I57RccJD_ssDbFDwQT0OvSV3s-j-nn9AwxrelQ/viewform' },
+        { title: 'Prawo Celne - Postępowanie Celne i Prawo Dewizowe', url: 'https://docs.google.com/forms/d/e/1FAIpQLSewSLlE7f7xm6fRyBUUNnk0ixhwYGq0Ay0qnKvIrYgdYlrLdg/viewform' },
+        { title: 'Procedury celne - test',                            url: 'https://docs.google.com/forms/d/e/1FAIpQLScNbbzhfKdUNFfzOaC_vIBFDpobA149kolKcUwWHzWkIhLGBw/viewform' },
+        { title: 'Test - Prawo celne',                                url: 'https://docs.google.com/forms/d/e/1FAIpQLSd6_ASDPE6mK7IyZ027nCF5mRFWzO9pE_mmBPo_dqD4t9lbmA/viewform' }
+    ]},
+    { category: 'Taryfa', links: [
+        { title: 'Prawo Celne - Środki Taryfowe', url: 'https://docs.google.com/forms/d/e/1FAIpQLScUIGzsccDAYjqER28yWkVhOHqRHl4Rbcn2dIvkS7no317n8g/viewform' },
+        { title: 'TEST - ZKZ - Taryfa',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSdSmswk2vb8MaoPKm_ATTEc8w9psTVoOyU9qS_lYkexZb1SYg/viewform' }
+    ]},
+    { category: 'Wartość celna', links: [
+        { title: 'Prawo Celne - Wartość celna towarów', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeV5URw6zArpFWrC-5ukim8WnQ-AeQt8cawhiIpqmHi4U72ug/viewform' },
+        { title: 'Test Wartość Celna ZKZ',              url: 'https://docs.google.com/forms/d/e/1FAIpQLSdP05TMx5Ajwf5_u4zLQudIkWxxiE48PcV3ioxksy12yl5xnA/viewform' }
+    ]},
+    { category: 'Pochodzenie towaru i preferencje', links: [
+        { title: '151–181',                                      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfHbxeLXtYmw0lgfpyF-4b8iaNixn-TR1EUpy1yyIQV634bJQ/viewform' },
+        { title: 'TEST - ZKZ - Pochodzenie towaru / Zwalczanie', url: 'https://docs.google.com/forms/d/e/1FAIpQLSdl3tRebRuNisNHg_ceuTrG46SiYLv8Vi--RzGk5Zs9MjRHmQ/viewform' }
+    ]},
+    { category: 'Mieszane', links: [
+        { title: 'Testor ZKZ', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfJx0g9dsoFXLspX-vKCVQOyHlbUgFBns3K2ur_G3py1hODMw/viewform' }
+    ]}
+];
+
+// ── DOM helpers ────────────────────────────────────────────
+const $ = (sel, ctx = document) => ctx.querySelector(sel);
+const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+
+// ── Theme ──────────────────────────────────────────────────
+function initTheme() {
+    const stored = localStorage.getItem(STORAGE.THEME);
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = stored || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+}
+function toggleTheme() {
+    const cur = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem(STORAGE.THEME, next);
+}
+
+// ── Boot ───────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    bindGlobalControls();
+    loadData();
+    renderHomeStats();
+    renderTestGroups();
+    renderMaterials();
+    renderExternalLinks();
+    handleHashRoute();
+    window.addEventListener('hashchange', handleHashRoute);
+});
+
+function bindGlobalControls() {
+    $('#themeToggle').addEventListener('click', toggleTheme);
+
+    $('#navMenuBtn').addEventListener('click', () => {
+        $('#topnav').classList.toggle('is-mobile-open');
+    });
+
+    // navigation links anywhere with [data-view]
+    document.addEventListener('click', (e) => {
+        const navBtn = e.target.closest('[data-view]');
+        if (navBtn) {
+            const view = navBtn.dataset.view;
+            if (['home','tests','materials','links'].includes(view)) {
+                e.preventDefault();
+                navigate(view);
+                $('#topnav').classList.remove('is-mobile-open');
+            }
         }
-        state.manifest = loadManifest();
+        const closeBtn = e.target.closest('[data-close-modal]');
+        if (closeBtn) {
+            closeAllModals();
+        }
+    });
 
-        // 1. Dodanie testów specjalnych do systemu (aby działały jak zwykłe testy)
-        SPECIAL_TESTS_DATA.forEach(folder => {
+    // tests search
+    $('#testsSearch').addEventListener('input', (e) => filterTests(e.target.value));
+
+    // quiz
+    $('#quizBackBtn').addEventListener('click', () => navigate('tests'));
+    $('#quizCheckBtn').addEventListener('click', quizCheckAnswer);
+    $('#quizNextBtn').addEventListener('click', quizNext);
+    $('#quizRestartBtn').addEventListener('click', () => {
+        if (state.selectedFolder) startQuiz(state.selectedFolder.id, true);
+    });
+
+    // flashcards
+    $('#fcBackBtn').addEventListener('click', () => navigate('tests'));
+    $('#flashcard').addEventListener('click', flipFlashcard);
+    $('#flashcard').addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipFlashcard(); }
+    });
+    $('#fcRateYes').addEventListener('click', () => rateFlashcard(true));
+    $('#fcRateNo').addEventListener('click', () => rateFlashcard(false));
+    $('#fcRestartBtn').addEventListener('click', () => {
+        if (state.selectedFolder) startFlashcards(state.selectedFolder.id);
+    });
+
+    // continue prompt
+    $('#continueResumeBtn').addEventListener('click', resumeQuizSession);
+    $('#continueRestartBtn').addEventListener('click', () => {
+        if (state.pendingFolderId) startQuiz(state.pendingFolderId, true);
+    });
+    $('#continueCancelBtn').addEventListener('click', () => navigate('tests'));
+
+    // end screen
+    $('#endRetryBtn').addEventListener('click', () => {
+        if (state.selectedFolder) startQuiz(state.selectedFolder.id, true);
+    });
+    $('#endHomeBtn').addEventListener('click', () => navigate('tests'));
+
+    // mode picker buttons (delegated below)
+    $('#pickQuiz').addEventListener('click', () => {
+        const folderId = state.pendingFolderId;
+        closeAllModals();
+        if (folderId) startQuiz(folderId);
+    });
+    $('#pickFlash').addEventListener('click', () => {
+        const folderId = state.pendingFolderId;
+        closeAllModals();
+        if (folderId) startFlashcards(folderId);
+    });
+
+    // material picker buttons
+    $('#pickRead').addEventListener('click', () => {
+        const m = MATERIALS.find(x => x.id === state.pendingMaterialId);
+        closeAllModals();
+        if (m) openPdf(m.pdf, m.title);
+    });
+    $('#pickTrainer').addEventListener('click', () => {
+        const m = MATERIALS.find(x => x.id === state.pendingMaterialId);
+        closeAllModals();
+        if (m) openTrainer(m);
+    });
+
+    // PDF modal
+    $('#pdfFrame').addEventListener('error', () => {
+        $('#pdfFrame').classList.add('hidden');
+        $('#pdfFallback').classList.remove('hidden');
+    });
+
+    // ESC closes modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAllModals();
+    });
+
+    // trainer
+    $('#trainerBackBtn').addEventListener('click', () => navigate('materials'));
+    $$('.trainer-tab').forEach(b => b.addEventListener('click', () => switchTrainerTab(b.dataset.trainerTab)));
+    document.addEventListener('click', (e) => {
+        const targetTab = e.target.closest('[data-trainer-tab]:not(.trainer-tab)');
+        if (targetTab) switchTrainerTab(targetTab.dataset.trainerTab);
+    });
+    $('#trainerForm').addEventListener('submit', onTrainerFormSubmit);
+    $('#trainerCancelEditBtn').addEventListener('click', cancelTrainerEdit);
+
+    $('#trainerCard').addEventListener('click', flipTrainerCard);
+    $('#trainerCard').addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flipTrainerCard(); }
+    });
+    $('#trainerRateYes').addEventListener('click', () => rateTrainerCard(true));
+    $('#trainerRateNo').addEventListener('click', () => rateTrainerCard(false));
+}
+
+function navigate(view) {
+    $$('.view').forEach(v => v.classList.remove('view--active'));
+    const target = $(`#view-${view}`);
+    if (target) target.classList.add('view--active');
+
+    $$('.topnav__link').forEach(b => {
+        b.classList.toggle('is-active', b.dataset.view === view);
+    });
+
+    if (['home','tests','materials','links'].includes(view)) {
+        history.replaceState(null, '', `#${view}`);
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function handleHashRoute() {
+    const v = (location.hash || '').replace('#', '');
+    if (['home','tests','materials','links'].includes(v)) navigate(v);
+}
+
+// ── Data load ──────────────────────────────────────────────
+function loadData() {
+    try {
+        if (!window.ZKTEST_DATA) window.ZKTEST_DATA = { folders: [] };
+        state.manifest = window.ZKTEST_DATA;
+
+        if (!Array.isArray(state.manifest.folders) || state.manifest.folders.length === 0) {
+            throw new Error('Brak danych testów w window.ZKTEST_DATA.');
+        }
+
+        // Inject special tests (lazy — references SP_CONTENT which is defined at bottom of IIFE)
+        const specialTests = buildSpecialTestsData();
+        specialTests.forEach(folder => {
             if (!state.manifest.folders.find(f => f.id === folder.id)) {
                 const questions = loadQuestions(folder);
                 folder.questionCount = questions.length;
@@ -179,251 +358,124 @@ function init() {
             }
         });
 
-        // 2. Renderowanie nowych testów specjalnych
-        renderSpecialFolders(SPECIAL_TESTS_DATA);
-
-        // 3. Renderowanie standardowych testów (bez testów specjalnych)
-        const normalFolders = state.manifest.folders.filter(f => !f.id.startsWith('sp_'));
-        renderFolderTiles(normalFolders);
-        
-        renderExternalLinks();
-        setStatus('');
-        // Initialize TTS voices if possible
-        if ('speechSynthesis' in window) populateVoiceSelect();
-    } catch (error) {
-        console.error('Nie udało się wczytać bazy testów:', error);
-        showError('Nie udało się wczytać bazy testów. Uruchom build-manifest.ps1, aby odtworzyć plik tests/tests-data.js.');
-        setStatus('');
+        state.folders = state.manifest.folders;
+    } catch (err) {
+        console.error('loadData error:', err);
+        showError('Nie udało się wczytać bazy testów. Uruchom build-manifest.ps1 aby odtworzyć tests/tests-data.js.');
     }
 }
 
-function loadManifest() {
-    const manifest = window.ZKTEST_DATA;
-
-    if (!manifest || !Array.isArray(manifest.folders) || manifest.folders.length === 0) {
-        throw new Error('Brak danych testów w window.ZKTEST_DATA.');
-    }
-
-    return manifest;
+function showError(msg) {
+    const el = $('#errorMsg');
+    el.textContent = msg;
+    el.classList.remove('hidden');
 }
 
-const EXTERNAL_LINKS = [
-    {
-        category: 'Podatki i prawo podatkowe',
-        links: [
-            { title: 'System podatkowy - test',         url: 'https://docs.google.com/forms/d/e/1FAIpQLSdnC0eIeiGGS8WB6bIuvL2vjaldRbLj0MQm3QXEqAXFabOHtQ/viewform' },
-            { title: 'Podatki 1',                       url: 'https://docs.google.com/forms/d/e/1FAIpQLSc7gzAz6A0xhI_qOtuH_49K8_srYu5F4UBB3jfekf8JS1cnPw/viewform' },
-            { title: 'Podatki 2',                       url: 'https://docs.google.com/forms/d/e/1FAIpQLSemqr5ZoDMlyAoExbtPdFLzM4mkr65g4MKDbAF6AYjO3PnKWw/viewform' },
-            { title: 'Prawo Podatkowe zbiór z kartek',  url: 'https://docs.google.com/forms/d/e/1FAIpQLScYY3FVX2oJrh7WjhbDOkXELepED9pGhtl9eAcivrWMM2l-FQ/viewform' },
-        ]
-    },
-    {
-        category: 'Karny i KKS',
-        links: [
-            { title: 'Karny',                url: 'https://docs.google.com/forms/d/e/1FAIpQLSfrrhE6z5ftwFCIDBiU3ILtl0m-GYs2ZEbfP2W3FpzP_CKbGQ/viewform' },
-            { title: 'ZKZ Test 2',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSc18ILi74wkbRQUQVbu_DvjXq8rZnRcdDGM1ibev5IWfjJgZQ/viewform' },
-            { title: 'ZKZ TEST 3',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSd0izfPsMr5wG9eZXRFQZNaBibqD3V_SEbrI4xkNUOhfwXHyA/viewform' },
-            { title: 'ZKZ TEST 4',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSfnvWngpXliewjznj_U_0-HIfBKlsAl-tMpgfYLKi3PeLmP5g/viewform' },
-            { title: 'TEST 2 (02/2025)',      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfDvLvGWCMz3ikF7ZlwzPoIqfy6EJgPeL77fWj3w6EtMRZPvQ/viewform' },
-            { title: 'TEST 4',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSfqj6HsqC-zTZCcnIt8jQ5EO_TRa44VRENBeqB9AZzKIsajKg/viewform' },
-            { title: 'ZKZ TEST 6',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSccQszO4BqBzhV14_GWLhsM-xu9zPvCt3k1nxzniTK9yVJG9Q/viewform' },
-            { title: 'TEST 7',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSeG8FCoJL-41cVH5eEe6N4RPKfshlTKE9mcV_hQIQXXgFBKhg/viewform' },
-            { title: 'TEST 9',               url: 'https://docs.google.com/forms/d/e/1FAIpQLSflah2TsDHh_KpG3pC18-m1rT8smxXK6GjUlgEZ9KmNQXZcPA/viewform' },
-            { title: 'ZKZ TEST 10',          url: 'https://docs.google.com/forms/d/e/1FAIpQLSfSD7ByYEeVvRpmnIlRGAX-mpA9AAy9e0McJVmcfR7_GDrJTw/viewform' },
-            { title: 'ZKZ TEST 11',          url: 'https://docs.google.com/forms/d/e/1FAIpQLSchEhGDlnxd9X7QRYz29sNb0SAVViB8RAVEmYNfccLSSbwjzQ/viewform' },
-            { title: 'ZKZ TEST Podsumowanie',url: 'https://docs.google.com/forms/d/e/1FAIpQLSdBH-D85ZXNrqc9JWlXl2WuO2Oztyq7GlOT-6cC7TQqop5RIg/viewform' },
-            { title: 'KKS',                  url: 'https://docs.google.com/forms/d/e/1FAIpQLSdn3HSfEKF3jxC0HCUAlLTqBIieyWT7ks3G9iINgiYWBJz24A/viewform' },
-            { title: 'KKS dodatkowe - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfNliI3zqCJIhnE14CL9BwMrMXSXmQt-XPugHMEnfOuyZ9BXA/viewform' },
-        ]
-    },
-    {
-        category: 'Ograniczenia',
-        links: [
-            { title: 'Ograniczenia część 1', url: 'https://docs.google.com/forms/d/e/1FAIpQLSdh93loTvC9F9QPF3kOZNkkI7IA0vVaUIYlmTfT1AwMmNHl-w/viewform' },
-            { title: 'Ograniczenia część 2', url: 'https://docs.google.com/forms/d/e/1FAIpQLSegSbyiIUcGwz7P4zJOtfPypoXu9L-qxCO8nAJuTj3xcfuX3Q/viewform' },
-        ]
-    },
-    {
-        category: 'Komunikacja',
-        links: [
-            { title: 'Komunikacja - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfgTkSYSXf7UJyDnWlfuHKtK5LaQQaq0pAKi-ndgAog0zGKhA/viewform' },
-        ]
-    },
-    {
-        category: 'Kontrola',
-        links: [
-            { title: 'Kontrola - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLScKKl7gn2K4zOIIPjQNPVP9IQKYzx4xEpy-x0S_DRp3bUhvQw/viewform' },
-        ]
-    },
-    {
-        category: 'Akcyza',
-        links: [
-            { title: 'Akcyza - test', url: 'https://docs.google.com/forms/d/e/1FAIpQLSe2McMym6LLbRUi0DiQdF759Qv3-FBA9pKbWSlztjNrdQDnrQ/viewform' },
-        ]
-    },
-    {
-        category: 'Prawo celne i procedury celne',
-        links: [
-            { title: 'Procedury Celne - zagadnienia ogólne',              url: 'https://docs.google.com/forms/d/e/1FAIpQLSfEY7iGXj36I57RccJD_ssDbFDwQT0OvSV3s-j-nn9AwxrelQ/viewform' },
-            { title: 'Prawo Celne - Postępowanie Celne i Prawo Dewizowe', url: 'https://docs.google.com/forms/d/e/1FAIpQLSewSLlE7f7xm6fRyBUUNnk0ixhwYGq0Ay0qnKvIrYgdYlrLdg/viewform' },
-            { title: 'Procedury celne - test',                            url: 'https://docs.google.com/forms/d/e/1FAIpQLScNbbzhfKdUNFfzOaC_vIBFDpobA149kolKcUwWHzWkIhLGBw/viewform' },
-            { title: 'Test - Prawo celne',                                url: 'https://docs.google.com/forms/d/e/1FAIpQLSd6_ASDPE6mK7IyZ027nCF5mRFWzO9pE_mmBPo_dqD4t9lbmA/viewform' },
-        ]
-    },
-    {
-        category: 'Taryfa',
-        links: [
-            { title: 'Prawo Celne - Środki Taryfowe', url: 'https://docs.google.com/forms/d/e/1FAIpQLScUIGzsccDAYjqER28yWkVhOHqRHl4Rbcn2dIvkS7no317n8g/viewform' },
-            { title: 'TEST - ZKZ - Taryfa',           url: 'https://docs.google.com/forms/d/e/1FAIpQLSdSmswk2vb8MaoPKm_ATTEc8w9psTVoOyU9qS_lYkexZb1SYg/viewform' },
-        ]
-    },
-    {
-        category: 'Wartość celna',
-        links: [
-            { title: 'Prawo Celne - Wartość celna towarów', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeV5URw6zArpFWrC-5ukim8WnQ-AeQt8cawhiIpqmHi4U72ug/viewform' },
-            { title: 'Test Wartość Celna ZKZ',              url: 'https://docs.google.com/forms/d/e/1FAIpQLSdP05TMx5Ajwf5_u4zLQudIkWxxiE48PcV3ioxksy12yl5xnA/viewform' },
-        ]
-    },
-    {
-        category: 'Pochodzenie towaru i preferencje',
-        links: [
-            { title: '151–181',                                      url: 'https://docs.google.com/forms/d/e/1FAIpQLSfHbxeLXtYmw0lgfpyF-4b8iaNixn-TR1EUpy1yyIQV634bJQ/viewform' },
-            { title: 'TEST - ZKZ - Pochodzenie towaru / Zwalczanie', url: 'https://docs.google.com/forms/d/e/1FAIpQLSdl3tRebRuNisNHg_ceuTrG46SiYLv8Vi--RzGk5Zs9MjRHmQ/viewform' },
-        ]
-    },
-    {
-        category: 'Mieszane',
-        links: [
-            { title: 'Testor ZKZ', url: 'https://docs.google.com/forms/d/e/1FAIpQLSfJx0g9dsoFXLspX-vKCVQOyHlbUgFBns3K2ur_G3py1hODMw/viewform' },
-        ]
-    },
-];
+// ── Render: home stats ─────────────────────────────────────
+function renderHomeStats() {
+    const folders = state.folders || [];
+    $('#statTests').textContent = folders.length || 0;
+    const total = folders.reduce((sum, f) => sum + (f.questionCount || 0), 0);
+    $('#statQuestions').textContent = total;
+    $('#statMaterials').textContent = MATERIALS.length;
+}
 
-const FOLDER_ICON_SVG = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-  <path d="M3 7a2 2 0 0 1 2-2h4.586a1 1 0 0 1 .707.293L11.707 6.7A1 1 0 0 0 12.414 7H19a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
-</svg>`;
+// ── Render: tests groups ───────────────────────────────────
+const ICONS = {
+    folder: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+    star:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    pdf:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+    extLink:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`,
+    chev:   `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`
+};
 
-const ARROW_SVG = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-  <polyline points="9 18 15 12 9 6"/>
-</svg>`;
+function renderTestGroups() {
+    const generalPattern = /^Test[_\s]?\d+$/i;
+    const special   = state.folders.filter(f => f.id.startsWith('sp_'));
+    const general   = state.folders.filter(f => !f.id.startsWith('sp_') && generalPattern.test(f.id));
+    const thematic  = state.folders.filter(f => !f.id.startsWith('sp_') && !generalPattern.test(f.id));
 
-const EXTERNAL_ICON_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
-  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-  <polyline points="15 3 21 3 21 9"/>
-  <line x1="10" y1="14" x2="21" y2="3"/>
-</svg>`;
+    fillGroup($('#specialFolderGrid'), special, 'star');
+    fillGroup($('#thematicGrid'),     thematic, 'folder');
+    fillGroup($('#generalGrid'),      general,  'folder');
 
-// ── DODANE: Funkcja rysująca nowe kafle w oddzielnej sekcji
-function renderSpecialFolders(folders) {
-    const grid = elements.specialFolderGrid;
+    $('#groupSpecial').classList.toggle('hidden', special.length === 0);
+    $('#groupThematic').classList.toggle('hidden', thematic.length === 0);
+    $('#groupGeneral').classList.toggle('hidden', general.length === 0);
+}
+
+function fillGroup(grid, folders, icon) {
     if (!grid) return;
     grid.innerHTML = '';
+    folders.forEach(f => grid.appendChild(makeTile(f, icon)));
+}
 
-    folders.forEach((folder) => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'folder-card';
-        button.addEventListener('click', () => startQuiz(folder.id));
+function makeTile(folder, icon) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tile';
+    btn.dataset.testTitle = (folder.title || '').toLowerCase();
+    btn.innerHTML = `
+        <span class="tile__icon">${ICONS[icon] || ICONS.folder}</span>
+        <span class="tile__body">
+            <span class="tile__title"></span>
+            <span class="tile__meta">${folder.questionCount || 0} pytań</span>
+        </span>
+        <span class="tile__arrow">→</span>
+    `;
+    btn.querySelector('.tile__title').textContent = folder.title;
+    btn.addEventListener('click', () => openModePickerForTest(folder));
+    return btn;
+}
 
-        const iconWrap = document.createElement('div');
-        iconWrap.className = 'folder-icon';
-        iconWrap.innerHTML = FOLDER_ICON_SVG;
-
-        const body = document.createElement('div');
-        body.className = 'folder-card__body';
-
-        const title = document.createElement('h3');
-        title.textContent = folder.title;
-
-        const description = document.createElement('p');
-        description.textContent = `${folder.questionCount} pytań`;
-
-        body.appendChild(title);
-        body.appendChild(description);
-
-        const arrow = document.createElement('span');
-        arrow.className = 'folder-card__arrow';
-        arrow.innerHTML = ARROW_SVG;
-
-        button.appendChild(iconWrap);
-        button.appendChild(body);
-        button.appendChild(arrow);
-        grid.appendChild(button);
+function filterTests(q) {
+    const term = (q || '').trim().toLowerCase();
+    $$('#view-tests .tile').forEach(t => {
+        const match = !term || t.dataset.testTitle.includes(term);
+        t.style.display = match ? '' : 'none';
+    });
+    // hide group titles when their grid is empty
+    ['Special','Thematic','General'].forEach(name => {
+        const grid = $(`#${name === 'Special' ? 'specialFolderGrid' : name === 'Thematic' ? 'thematicGrid' : 'generalGrid'}`);
+        const groupEl = grid && grid.closest('.test-group');
+        if (!groupEl) return;
+        const visible = grid.querySelectorAll('.tile:not([style*="display: none"])').length;
+        groupEl.style.display = visible ? '' : 'none';
     });
 }
 
-function renderFolderTiles(folders) {
-    elements.folderGrid.innerHTML = '';
-
-    const generalPattern = /^Test[_\s]?\d+$/i;
-    const thematic = folders.filter((f) => !generalPattern.test(f.id));
-    const general  = folders.filter((f) =>  generalPattern.test(f.id));
-
-    const groups = [
-        { label: 'Tematyka', items: thematic },
-        { label: 'Ogólne',   items: general  }
-    ];
-
-    groups.forEach((group) => {
-        if (group.items.length === 0) {
-            return;
-        }
-
-        const column = document.createElement('div');
-        column.className = 'folder-column';
-
-        const heading = document.createElement('h3');
-        heading.className = 'folder-column__heading';
-        heading.textContent = group.label;
-        column.appendChild(heading);
-
-        const grid = document.createElement('div');
-        grid.className = 'folder-column__grid';
-
-        group.items.forEach((folder) => {
-            const button = document.createElement('button');
-            button.type = 'button';
-            button.className = 'folder-card';
-            button.addEventListener('click', () => startQuiz(folder.id));
-
-            const iconWrap = document.createElement('div');
-            iconWrap.className = 'folder-icon';
-            iconWrap.innerHTML = FOLDER_ICON_SVG;
-
-            const body = document.createElement('div');
-            body.className = 'folder-card__body';
-
-            const title = document.createElement('h3');
-            title.textContent = folder.title;
-
-            const description = document.createElement('p');
-            description.textContent = `${folder.questionCount} pytań`;
-
-            body.appendChild(title);
-            body.appendChild(description);
-
-            const arrow = document.createElement('span');
-            arrow.className = 'folder-card__arrow';
-            arrow.innerHTML = ARROW_SVG;
-
-            button.appendChild(iconWrap);
-            button.appendChild(body);
-            button.appendChild(arrow);
-            grid.appendChild(button);
+// ── Render: materials ──────────────────────────────────────
+function renderMaterials() {
+    const grid = $('#materialsGrid');
+    grid.innerHTML = '';
+    MATERIALS.forEach(m => {
+        const card = document.createElement('article');
+        card.className = 'material';
+        card.innerHTML = `
+            <div class="material__icon">${ICONS.pdf}</div>
+            <h3></h3>
+            <p></p>
+            <div class="material__actions">
+                <button class="btn btn--secondary" type="button" data-act="read">Czytaj</button>
+                <button class="btn btn--primary" type="button" data-act="trainer">Trener</button>
+            </div>
+        `;
+        card.querySelector('h3').textContent = m.title;
+        card.querySelector('p').textContent = m.desc || '';
+        card.querySelector('[data-act="read"]').addEventListener('click', () => openPdf(m.pdf, m.title));
+        card.querySelector('[data-act="trainer"]').addEventListener('click', () => openTrainer(m));
+        // tap card itself opens picker (apart from action buttons)
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            openMaterialPicker(m);
         });
-
-        column.appendChild(grid);
-        elements.folderGrid.appendChild(column);
+        grid.appendChild(card);
     });
 }
 
-const CHEVRON_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`;
-
+// ── Render: external links ────────────────────────────────
 function renderExternalLinks() {
-    const section = document.getElementById('externalLinksSection');
-    if (!section) return;
-
-    const accordion = section.querySelector('.links-accordion');
+    const accordion = $('#linksAccordion');
     accordion.innerHTML = '';
 
     EXTERNAL_LINKS.forEach((group) => {
@@ -433,67 +485,38 @@ function renderExternalLinks() {
         const header = document.createElement('button');
         header.type = 'button';
         header.className = 'accordion-header';
-
-        const headerLeft = document.createElement('span');
-        headerLeft.className = 'accordion-header__left';
-
-        const dot = document.createElement('span');
-        dot.className = 'accordion-dot';
-
-        const title = document.createElement('span');
-        title.className = 'accordion-header__title';
-        title.textContent = group.category;
-
-        const count = document.createElement('span');
-        count.className = 'accordion-header__count';
-        count.textContent = `${group.links.length}`;
-
-        headerLeft.appendChild(dot);
-        headerLeft.appendChild(title);
-        headerLeft.appendChild(count);
-
-        const chevron = document.createElement('span');
-        chevron.className = 'accordion-chevron';
-        chevron.innerHTML = CHEVRON_SVG;
-
-        header.appendChild(headerLeft);
-        header.appendChild(chevron);
+        header.innerHTML = `
+            <span class="accordion-header__left">
+                <span class="accordion-header__title"></span>
+                <span class="accordion-header__count"></span>
+            </span>
+            <span class="accordion-chevron">${ICONS.chev}</span>
+        `;
+        header.querySelector('.accordion-header__title').textContent = group.category;
+        header.querySelector('.accordion-header__count').textContent = group.links.length;
 
         const body = document.createElement('div');
         body.className = 'accordion-body';
-
         const inner = document.createElement('div');
         inner.className = 'accordion-body-inner';
-
-        group.links.forEach((link) => {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'link-item';
-            btn.addEventListener('click', () => { window.location.href = link.url; });
-
-            const iconWrap = document.createElement('span');
-            iconWrap.className = 'link-item__icon';
-            iconWrap.innerHTML = EXTERNAL_ICON_SVG;
-
-            const label = document.createElement('span');
-            label.className = 'link-item__label';
-            label.textContent = link.title;
-
-            const arrow = document.createElement('span');
-            arrow.className = 'link-item__arrow';
-            arrow.innerHTML = ARROW_SVG;
-
-            btn.appendChild(iconWrap);
-            btn.appendChild(label);
-            btn.appendChild(arrow);
-            inner.appendChild(btn);
+        group.links.forEach(link => {
+            const a = document.createElement('a');
+            a.className = 'link-item';
+            a.href = link.url;
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.innerHTML = `
+                <span class="link-item__icon">${ICONS.extLink}</span>
+                <span class="link-item__label"></span>
+                <span class="link-item__arrow">→</span>
+            `;
+            a.querySelector('.link-item__label').textContent = link.title;
+            inner.appendChild(a);
         });
-
         body.appendChild(inner);
 
         header.addEventListener('click', () => {
-            const isOpen = item.classList.contains('is-open');
-            item.classList.toggle('is-open', !isOpen);
+            item.classList.toggle('is-open');
         });
 
         item.appendChild(header);
@@ -502,381 +525,126 @@ function renderExternalLinks() {
     });
 }
 
-// ── Session persistence ────────────────────────────────
-function sessionKey(folderId) { return `zktest_v1_${folderId}`; }
-
-function saveSession() {
-    if (!state.selectedFolder) return;
-    try {
-        localStorage.setItem(sessionKey(state.selectedFolder.id), JSON.stringify({
-            folderId: state.selectedFolder.id,
-            questions: state.questions,
-            currentQuestionIndex: state.currentQuestionIndex,
-            score: state.score,
-            results: state.results
-        }));
-    } catch (_) { /* ignore quota errors */ }
+// ── Mode pickers ───────────────────────────────────────────
+function openModePickerForTest(folder) {
+    state.pendingFolderId = folder.id;
+    $('#modePickerTitle').textContent = `Jak chcesz przerobić: „${folder.title}"?`;
+    $('#modePickerSub').textContent = `${folder.questionCount || 0} pytań · wybierz tryb`;
+    showModal('#modePicker');
 }
 
-function loadSession(folderId) {
-    try {
-        const raw = localStorage.getItem(sessionKey(folderId));
-        return raw ? JSON.parse(raw) : null;
-    } catch (_) { return null; }
+state.pendingMaterialId = null;
+function openMaterialPicker(material) {
+    state.pendingMaterialId = material.id;
+    $('#materialPickerTitle').textContent = `„${material.title}" — jak się uczysz?`;
+    showModal('#materialPicker');
 }
 
-function clearSession(folderId) {
-    localStorage.removeItem(sessionKey(folderId));
+function showModal(sel) {
+    closeAllModals();
+    const m = $(sel);
+    if (m) {
+        m.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
 }
-
-// ── TTS ────────────────────────────────────────────────
-let ttsVoices = [];
-let ttsSpeaking = false;
-let currentAudio = null;
-const TTS_VOICE_KEY = 'zktest_tts_voice';
-const FAKE_GOOGLE_VOICE = { name: 'Google (Online - naturalny)', lang: 'pl-PL', isGoogleOnline: true };
-
-function voiceQualityScore(v) {
-    if (v.isGoogleOnline) return 90; 
-    const name = v.name.toLowerCase();
-    if (/natural/.test(name))  return 100;
-    if (/neural/.test(name))   return 95;
-    if (/online/.test(name))   return 85;
-    if (/google/.test(name))   return 70;
-    if (/zofia|marek|agnieszka|krzysztof/.test(name)) return 60;
-    if (/paulina/.test(name))  return 10;
-    return 30;
-}
-
-function getAllPolishVoices() {
-    const voices = ttsVoices
-        .filter((v) => v.lang.startsWith('pl'))
-        .sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a));
-    
-    voices.unshift(FAKE_GOOGLE_VOICE);
-    return voices.sort((a, b) => voiceQualityScore(b) - voiceQualityScore(a));
-}
-
-function formatVoiceLabel(v) {
-    if (v.isGoogleOnline) return `☁️ ${v.name}`;
-    const score = voiceQualityScore(v);
-    const prefix = score >= 95 ? '⭐ ' : score >= 70 ? '✓ ' : '';
-    return `${prefix}${v.name}`;
-}
-
-function populateVoiceSelect() {
-    const sel = elements.ttsVoiceSelect;
-    if (!sel) return;
-    const voices = getAllPolishVoices();
-    const saved = localStorage.getItem(TTS_VOICE_KEY);
-
-    sel.innerHTML = '';
-
-    voices.forEach((v) => {
-        const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = formatVoiceLabel(v);
-        sel.appendChild(opt);
-    });
-
-    if (saved && voices.some((v) => v.name === saved)) {
-        sel.value = saved;
-    } else {
-        sel.value = voices[0].name;
+function closeAllModals() {
+    const pdfWasOpen = !$('#pdfModal').classList.contains('hidden');
+    $$('.modal').forEach(m => m.classList.add('hidden'));
+    document.body.style.overflow = '';
+    if (pdfWasOpen) {
+        const f = $('#pdfFrame');
+        if (f) f.src = '';
     }
 }
 
-function getSelectedVoice() {
-    const name = elements.ttsVoiceSelect && elements.ttsVoiceSelect.value;
-    if (name === FAKE_GOOGLE_VOICE.name) return FAKE_GOOGLE_VOICE;
-    return ttsVoices.find((v) => v.name === name) || getAllPolishVoices()[0] || null;
+// ── PDF viewer ─────────────────────────────────────────────
+function openPdf(src, title) {
+    closeAllModals();
+    $('#pdfModalTitle').textContent = title;
+    $('#pdfOpenLink').href = src;
+    $('#pdfFallback').classList.add('hidden');
+    const f = $('#pdfFrame');
+    f.classList.remove('hidden');
+    f.src = src;
+    $('#pdfModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
 }
 
-if ('speechSynthesis' in window) {
-    ttsVoices = speechSynthesis.getVoices();
-    speechSynthesis.addEventListener('voiceschanged', () => {
-        ttsVoices = speechSynthesis.getVoices();
-        populateVoiceSelect();
-    });
-}
-
-// ── Obejście: Głos Online Google ───────────────────────
-async function speakGoogleOnline(text) {
-    const chunks = [];
-    let str = text.replace(/\s+/g, ' ').trim();
-    while (str.length > 0) {
-        if (str.length <= 150) {
-            chunks.push(str);
-            break;
-        }
-        let splitAt = str.lastIndexOf(' ', 150);
-        if (splitAt === -1) splitAt = 150;
-        chunks.push(str.substring(0, splitAt));
-        str = str.substring(splitAt).trim();
-    }
-
-    let i = 0;
-    return new Promise((resolve) => {
-        function playNext() {
-            if (i >= chunks.length || !ttsSpeaking) {
-                setTTSState(false);
-                resolve();
-                return;
-            }
-            const chunk = encodeURIComponent(chunks[i]);
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=pl&client=tw-ob&q=${chunk}`;
-            const audio = new Audio(url);
-            currentAudio = audio;
-
-            audio.onended = () => { i++; playNext(); };
-            audio.onerror = () => { setTTSState(false); resolve(); };
-            audio.play().catch((err) => { 
-                console.error("Błąd odtwarzania chmury:", err);
-                setTTSState(false); 
-                resolve(); 
-            });
-        }
-        playNext();
-    });
-}
-
-function speakBrowser(text) {
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'pl-PL';
-    utt.rate = 0.95;
-    utt.pitch = 1.0;
-    const voice = getSelectedVoice();
-    if (voice && !voice.isGoogleOnline) utt.voice = voice;
-    utt.onend = () => setTTSState(false);
-    utt.onerror = () => setTTSState(false);
-    speechSynthesis.speak(utt);
-}
-
-function buildQuestionText(question) {
-    const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
-    const qText = question.questionText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-    const optsText = question.options.map((o, i) => `${letters[i]}... ${o}`).join('. ');
-    return `${qText}. ${optsText}.`;
-}
-
-async function toggleTTS() {
-    if (ttsSpeaking) { stopTTS(); return; }
-    const question = state.questions[state.currentQuestionIndex];
-    if (!question) return;
-
-    const text = buildQuestionText(question);
-    setTTSState(true);
-
-    try {
-        const voice = getSelectedVoice();
-        if (voice && voice.isGoogleOnline) {
-            await speakGoogleOnline(text);
-        } else if ('speechSynthesis' in window) {
-            speakBrowser(text);
-        }
-    } catch (err) {
-        console.error('TTS error:', err);
-        alert('Błąd odtwarzania głosu: ' + err.message);
-        setTTSState(false);
-    }
-}
-
-function setTTSState(speaking) {
-    ttsSpeaking = speaking;
-    elements.ttsBtn.classList.toggle('btn-tts--active', speaking);
-    elements.ttsBtn.title = speaking ? 'Zatrzymaj' : 'Przeczytaj pytanie';
-}
-
-function stopTTS() {
-    if ('speechSynthesis' in window) speechSynthesis.cancel();
-    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    setTTSState(false);
-}
-
-// ── Preview ────────────────────────────────────────────
-const PREVIEW_TEXT = 'Witaj! To jest próbka głosu. Sprawdź czy brzmi naturalnie i odpowiada Twoim preferencjom.';
-
-async function previewVoice() {
-    stopTTS();
-    setTTSState(true);
-    try {
-        const voice = getSelectedVoice();
-        if (voice && voice.isGoogleOnline) {
-            await speakGoogleOnline(PREVIEW_TEXT);
-        } else {
-            speakBrowser(PREVIEW_TEXT);
-        }
-    } catch (err) {
-        alert('Błąd podglądu: ' + err.message);
-        setTTSState(false);
-    }
-}
-
-// ── Quiz start ─────────────────────────────────────────
-function startQuiz(folderId) {
-    const saved = loadSession(folderId);
-    if (saved && saved.currentQuestionIndex < saved.questions.length) {
-        state.pendingFolderId = folderId;
-        elements.continueInfo.textContent =
-            `Pytanie ${saved.currentQuestionIndex + 1} / ${saved.questions.length} · Poprawne: ${saved.score}`;
-        showContinueScreen();
-        return;
-    }
-    startFreshQuiz(folderId);
-}
-
-function onContinueSession() {
-    const folderId = state.pendingFolderId;
-    if (!folderId) return;
-    const saved = loadSession(folderId);
-    if (!saved) { startFreshQuiz(folderId); return; }
-
-    const folder = state.manifest.folders.find((f) => f.id === folderId);
-    if (!folder) return;
-
-    state.selectedFolder = folder;
-    state.questions = saved.questions;
-    state.currentQuestionIndex = saved.currentQuestionIndex;
-    state.score = saved.score;
-    state.results = saved.results || [];
-    state.pendingFolderId = null;
-
-    elements.selectedTestName.textContent = folder.title;
-    showQuizScreen();
-    showQuestion();
-}
-
-function startFreshQuiz(folderId) {
-    const folder = state.manifest.folders.find((item) => item.id === folderId);
-    if (!folder) { showError('Nie znaleziono wybranego testu.'); return; }
-
-    clearSession(folderId);
-    setStatus(`Otwieranie testu „${folder.title}”...`);
-    hideError();
-
-    try {
-        const questions = loadQuestions(folder);
-        if (questions.length === 0) throw new Error('Brak pytań.');
-
-        state.selectedFolder = folder;
-        state.questions = shuffleArray(questions);
-        state.currentQuestionIndex = 0;
-        state.score = 0;
-        state.results = [];
-        state.pendingFolderId = null;
-
-        elements.selectedTestName.textContent = folder.title;
-        showQuizScreen();
-        showQuestion();
-    } catch (error) {
-        console.error(error);
-        showError(`Nie udało się otworzyć testu „${folder.title}”.`);
-    } finally {
-        setStatus('');
-    }
-}
-
+// ── Question parsing (kept from v1) ────────────────────────
 function loadQuestions(folder) {
-    return folder.files.reduce((allQuestions, fileMeta) => {
-        const questionsFromFile = parseQuestionsFromFile(fileMeta.content, fileMeta.name);
-        return allQuestions.concat(questionsFromFile);
+    return (folder.files || []).reduce((acc, file) => {
+        const qs = parseQuestionsFromFile(file.content, file.name);
+        return acc.concat(qs);
     }, []);
 }
 
 function parseQuestionsFromFile(text, filename) {
-    if (typeof text !== 'string' || !text.trim()) {
-        return [];
-    }
+    if (typeof text !== 'string' || !text.trim()) return [];
 
     const rawLines = text.split(/\r?\n/);
     const lines = [];
-
     for (const line of rawLines) {
         let trimmed = line.trim();
         if (trimmed.toLowerCase().startsWith('klucz:')) {
             trimmed = trimmed.replace(/^klucz:\s*/i, '').trim();
         }
-
-        if (trimmed.length > 0) {
-            lines.push(trimmed);
-        }
+        if (trimmed.length > 0) lines.push(trimmed);
     }
 
-    const questionBlocks = [];
+    const blocks = [];
     let currentBlock = [];
-
-    // Zaktualizowana logika obsługująca OBA formaty: klucz na początku i na końcu bloku
     for (const line of lines) {
         if (isAnswerKey(line)) {
             if (currentBlock.length === 0) {
-                // Stary format: klucz znajduje się na samej górze
                 currentBlock.push(line);
             } else if (currentBlock.some(l => isAnswerKey(l))) {
-                // Stary format: w bloku jest już klucz, więc ten należy do następnego pytania
-                questionBlocks.push(currentBlock);
+                blocks.push(currentBlock);
                 currentBlock = [line];
             } else {
-                // Nowy format: w bloku nie ma jeszcze klucza, znalazł się na samym dole
                 currentBlock.push(line);
-                questionBlocks.push(currentBlock);
+                blocks.push(currentBlock);
                 currentBlock = [];
             }
         } else {
             currentBlock.push(line);
         }
     }
-    
-    // Zabezpieczenie dla ostatniego pytania w starym formacie
     if (currentBlock.length > 0 && currentBlock.some(l => isAnswerKey(l))) {
-        questionBlocks.push(currentBlock);
+        blocks.push(currentBlock);
     }
 
-    return questionBlocks
-        .map((block, index) => {
-            const blockFilename = index === 0 ? filename : `${filename}#${index + 1}`;
-            return parseQuestionBlock(block, blockFilename);
-        })
+    return blocks
+        .map((block, i) => parseQuestionBlock(block, i === 0 ? filename : `${filename}#${i+1}`))
         .filter(Boolean);
 }
 
 function parseQuestionBlock(lines, filename) {
-    if (lines.length < 2) {
-        return null;
-    }
+    if (lines.length < 2) return null;
 
     let keyLine;
-    
-    // Dynamicznie wyciągamy klucz z góry lub z dołu
-    if (isAnswerKey(lines[0])) {
-        keyLine = lines.shift();
-    } else if (isAnswerKey(lines[lines.length - 1])) {
-        keyLine = lines.pop();
-    } else {
-        return null;
-    }
+    if (isAnswerKey(lines[0])) keyLine = lines.shift();
+    else if (isAnswerKey(lines[lines.length - 1])) keyLine = lines.pop();
+    else return null;
 
     const correctIndexes = [];
-    for (let index = 1; index < keyLine.length; index += 1) {
-        if (keyLine[index] === '1') {
-            correctIndexes.push(index - 1);
-        }
+    for (let i = 1; i < keyLine.length; i++) {
+        if (keyLine[i] === '1') correctIndexes.push(i - 1);
     }
 
     const expectedOptionCount = keyLine.length - 1;
     const questionLines = [];
     const options = [];
-    let parsingOptionsMode = false;
+    let parsingOpts = false;
 
-    for (let index = 0; index < lines.length; index += 1) {
-        const line = lines[index];
-
-        if (isOptionStart(line, parsingOptionsMode, questionLines.length > 0)) {
-            parsingOptionsMode = true;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (isOptionStart(line, parsingOpts, questionLines.length > 0)) {
+            parsingOpts = true;
             options.push(stripOptionPrefix(line));
             continue;
         }
-
-        if (parsingOptionsMode && options.length > 0) {
+        if (parsingOpts && options.length > 0) {
             options[options.length - 1] += ` ${line}`;
         } else {
             questionLines.push(line);
@@ -884,284 +652,1202 @@ function parseQuestionBlock(lines, filename) {
     }
 
     if (options.length === 0 && questionLines.length > expectedOptionCount) {
-        const fallbackQuestionLines = questionLines.slice(0, questionLines.length - expectedOptionCount);
-        const fallbackOptionLines = questionLines.slice(questionLines.length - expectedOptionCount);
-
-        if (fallbackQuestionLines.length > 0 && fallbackOptionLines.length === expectedOptionCount) {
+        const fbQ = questionLines.slice(0, questionLines.length - expectedOptionCount);
+        const fbO = questionLines.slice(questionLines.length - expectedOptionCount);
+        if (fbQ.length > 0 && fbO.length === expectedOptionCount) {
             questionLines.length = 0;
-            questionLines.push(...fallbackQuestionLines);
-            options.push(...fallbackOptionLines.map(stripOptionPrefix));
+            questionLines.push(...fbQ);
+            options.push(...fbO.map(stripOptionPrefix));
         }
     }
 
-    if (questionLines.length === 0 || options.length !== expectedOptionCount) {
-        return null;
-    }
+    if (questionLines.length === 0 || options.length !== expectedOptionCount) return null;
 
-    const questionText = questionLines.map((line) => `${escapeHtml(line)}<br>`).join('');
+    const questionText = questionLines.map(l => `${escapeHtml(l)}<br>`).join('');
     return { questionText, options, correctIndexes, filename };
 }
 
-function isAnswerKey(line) {
-    return /^X[01]+$/.test(line);
-}
-
-function isOptionStart(line, parsingOptionsMode, hasQuestionText) {
-    if (/^[a-z]\s*[.)]/i.test(line)) {
-        return true;
-    }
-
-    if (/^[\u2022*-]\s*/.test(line)) {
-        return true;
-    }
-
-    if ((parsingOptionsMode || hasQuestionText) && /^[a-e]\s+[^\s]/i.test(line)) {
-        return true;
-    }
-
-    if ((parsingOptionsMode || hasQuestionText) && /^\d+\s*[.)]\s*/.test(line)) {
-        return true;
-    }
-
+function isAnswerKey(line) { return /^X[01]+$/.test(line); }
+function isOptionStart(line, parsingOpts, hasQ) {
+    if (/^[a-z]\s*[.)]/i.test(line)) return true;
+    if (/^[•*-]\s*/.test(line)) return true;
+    if ((parsingOpts || hasQ) && /^[a-e]\s+[^\s]/i.test(line)) return true;
+    if ((parsingOpts || hasQ) && /^\d+\s*[.)]\s*/.test(line)) return true;
     return false;
 }
-
 function stripOptionPrefix(line) {
     return line
         .replace(/^[a-z]\s*[.)]\s*/i, '')
-        .replace(/^[\u2022*-]\s*/u, '')
+        .replace(/^[•*-]\s*/u, '')
         .replace(/^\d+\s*[.)]\s*/u, '')
         .replace(/^[a-e]\s+/i, '')
         .trim();
 }
-
-function showQuestion() {
-    stopTTS();
-    const question = state.questions[state.currentQuestionIndex];
-
-    elements.progressText.textContent = `Pytanie: ${state.currentQuestionIndex + 1} / ${state.questions.length}`;
-    elements.scoreText.textContent = `Poprawne: ${state.score}`;
-    elements.questionTitle.innerHTML = question.questionText;
-    elements.optionsContainer.innerHTML = '';
-
-    question.options.forEach((optionText, index) => {
-        const label = document.createElement('label');
-        label.className = 'option';
-
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.value = index;
-        input.className = 'answer-input';
-
-        const span = document.createElement('span');
-        span.textContent = optionText;
-
-        label.appendChild(input);
-        label.appendChild(span);
-        elements.optionsContainer.appendChild(label);
-    });
-
-    elements.checkBtn.classList.remove('hidden');
-    elements.nextBtn.classList.add('hidden');
-}
-
-function checkAnswer() {
-    const question = state.questions[state.currentQuestionIndex];
-    const inputs = document.querySelectorAll('.answer-input');
-    let isPerfect = true;
-    let anythingChecked = false;
-    const selectedIndexes = [];
-
-    inputs.forEach((input, index) => {
-        const isChecked = input.checked;
-        const isCorrect = question.correctIndexes.includes(index);
-        if (isChecked) { anythingChecked = true; selectedIndexes.push(index); }
-        input.disabled = true;
-        if (isChecked && isCorrect) {
-            input.parentElement.classList.add('correct');
-        } else if (isChecked && !isCorrect) {
-            input.parentElement.classList.add('incorrect');
-            isPerfect = false;
-        } else if (!isChecked && isCorrect) {
-            input.parentElement.classList.add('missed');
-            isPerfect = false;
-        }
-    });
-
-    if (!anythingChecked) {
-        alert('Zaznacz chociaż jedną odpowiedź przed sprawdzeniem.');
-        inputs.forEach((input) => { input.disabled = false; });
-        return;
-    }
-
-    if (isPerfect) {
-        state.score += 1;
-        elements.scoreText.textContent = `Poprawne: ${state.score}`;
-    }
-
-    // Record result for summary
-    state.results.push({
-        questionIndex: state.currentQuestionIndex,
-        correct: isPerfect,
-        selectedIndexes,
-        correctIndexes: question.correctIndexes,
-        questionText: question.questionText,
-        options: question.options
-    });
-
-    saveSession();
-    elements.checkBtn.classList.add('hidden');
-    elements.nextBtn.classList.remove('hidden');
-}
-
-function goToNextQuestion() {
-    state.currentQuestionIndex += 1;
-    saveSession();
-
-    if (state.currentQuestionIndex < state.questions.length) {
-        showQuestion();
-        return;
-    }
-
-    // Done — clear session and show summary
-    clearSession(state.selectedFolder.id);
-    elements.finalScore.textContent = state.score;
-    elements.finalTotal.textContent = state.questions.length;
-    elements.endSummary.textContent = `${state.selectedFolder.title} · ${state.score} / ${state.questions.length} poprawnych`;
-    renderSummary();
-    showEndScreen();
-}
-
-function renderSummary() {
-    const list = elements.resultsList;
-    list.innerHTML = '';
-    const letters = ['a', 'b', 'c', 'd', 'e', 'f'];
-
-    state.results.forEach((res, i) => {
-        const item = document.createElement('div');
-        item.className = `result-item ${res.correct ? 'result-item--ok' : 'result-item--fail'}`;
-
-        // Header row
-        const header = document.createElement('div');
-        header.className = 'result-item__header';
-
-        const badge = document.createElement('span');
-        badge.className = 'result-item__badge';
-        badge.textContent = res.correct ? '✓' : '✗';
-
-        const num = document.createElement('span');
-        num.className = 'result-item__num';
-        num.textContent = `Pytanie ${i + 1}`;
-
-        const qtext = document.createElement('span');
-        qtext.className = 'result-item__question';
-        qtext.innerHTML = res.questionText.replace(/<br>/g, ' ');
-
-        header.appendChild(badge);
-        header.appendChild(num);
-        header.appendChild(qtext);
-        item.appendChild(header);
-
-        // Options (only for incorrect)
-        if (!res.correct) {
-            const opts = document.createElement('div');
-            opts.className = 'result-item__options';
-            res.options.forEach((opt, oi) => {
-                const row = document.createElement('div');
-                const isCorrect = res.correctIndexes.includes(oi);
-                const wasSelected = res.selectedIndexes.includes(oi);
-                row.className = 'result-opt' +
-                    (isCorrect ? ' result-opt--correct' : '') +
-                    (wasSelected && !isCorrect ? ' result-opt--wrong' : '');
-                row.textContent = `${letters[oi]}) ${opt}`;
-                opts.appendChild(row);
-            });
-            item.appendChild(opts);
-        }
-
-        list.appendChild(item);
-    });
-}
-
-function retrySelectedTest() {
-    if (!state.selectedFolder) { showSetupScreen(); return; }
-    startFreshQuiz(state.selectedFolder.id);
-}
-
-// ── ZMIANA TUTAJ: Dodana sekcja z testami specjalnymi do sterowania oknami ──
-const materialsSection     = document.getElementById('materials');
-const externalLinksSection = document.getElementById('externalLinksSection');
-const specialTestsSection  = document.getElementById('specialTestsSection');
-
-const ALL_SCREENS = () => [
-    elements.setup, elements.quiz, elements.endScreen,
-    elements.continueScreen, materialsSection, externalLinksSection, specialTestsSection
-];
-
-function showSetupScreen() {
-    stopTTS();
-    ALL_SCREENS().forEach((s) => {
-        if(s) s.classList.add('hidden');
-    });
-    elements.setup.classList.remove('hidden');
-    materialsSection.classList.remove('hidden');
-    externalLinksSection.classList.remove('hidden');
-    if (specialTestsSection) specialTestsSection.classList.remove('hidden');
-    elements.selectedTestName.textContent = '';
-}
-
-function showContinueScreen() {
-    ALL_SCREENS().forEach((s) => {
-        if(s) s.classList.add('hidden');
-    });
-    elements.continueScreen.classList.remove('hidden');
-}
-
-function showQuizScreen() {
-    ALL_SCREENS().forEach((s) => {
-        if(s) s.classList.add('hidden');
-    });
-    elements.quiz.classList.remove('hidden');
-}
-
-function showEndScreen() {
-    stopTTS();
-    ALL_SCREENS().forEach((s) => {
-        if(s) s.classList.add('hidden');
-    });
-    elements.endScreen.classList.remove('hidden');
-}
-
-function setStatus(message) {
-    elements.loadingMsg.textContent = message;
-}
-
-function showError(message) {
-    elements.errorMsg.textContent = message;
-    elements.errorMsg.classList.remove('hidden');
-}
-
-function hideError() {
-    elements.errorMsg.textContent = '';
-    elements.errorMsg.classList.add('hidden');
-}
-
-function shuffleArray(items) {
-    const shuffled = [...items];
-
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-        const randomIndex = Math.floor(Math.random() * (index + 1));
-        [shuffled[index], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[index]];
-    }
-
-    return shuffled;
-}
-
-function escapeHtml(value) {
-    return value
+function escapeHtml(v) {
+    return String(v)
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
 }
+function shuffleArray(items) {
+    const a = [...items];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+// ── Quiz session storage ──────────────────────────────────
+function saveQuizSession() {
+    if (!state.selectedFolder) return;
+    try {
+        localStorage.setItem(STORAGE.SESSION(state.selectedFolder.id), JSON.stringify({
+            folderId: state.selectedFolder.id,
+            questions: state.quiz.questions,
+            currentQuestionIndex: state.quiz.index,
+            score: state.quiz.score,
+            results: state.quiz.results
+        }));
+    } catch(_) {}
+}
+function loadQuizSession(folderId) {
+    try {
+        const raw = localStorage.getItem(STORAGE.SESSION(folderId));
+        return raw ? JSON.parse(raw) : null;
+    } catch(_) { return null; }
+}
+function clearQuizSession(folderId) {
+    localStorage.removeItem(STORAGE.SESSION(folderId));
+}
+
+// ── Quiz mode ──────────────────────────────────────────────
+function startQuiz(folderId, fresh = false) {
+    const folder = state.folders.find(f => f.id === folderId);
+    if (!folder) return showError('Nie znaleziono testu.');
+    state.selectedFolder = folder;
+    state.pendingFolderId = null;
+
+    if (!fresh) {
+        const saved = loadQuizSession(folderId);
+        if (saved && saved.currentQuestionIndex < saved.questions.length) {
+            state.pendingFolderId = folderId;
+            $('#continueInfo').textContent =
+                `Pytanie ${saved.currentQuestionIndex + 1} / ${saved.questions.length} · Poprawne: ${saved.score}`;
+            navigate('continue');
+            return;
+        }
+    } else {
+        clearQuizSession(folderId);
+    }
+
+    let questions;
+    try {
+        questions = loadQuestions(folder);
+        if (!questions.length) throw new Error('Brak pytań.');
+    } catch (e) {
+        showError(`Nie udało się otworzyć testu „${folder.title}".`);
+        return;
+    }
+
+    state.quiz.questions = shuffleArray(questions);
+    state.quiz.index = 0;
+    state.quiz.score = 0;
+    state.quiz.results = [];
+
+    $('#quizTestName').textContent = folder.title;
+    navigate('quiz');
+    renderQuizQuestion();
+}
+
+function resumeQuizSession() {
+    const folderId = state.pendingFolderId;
+    if (!folderId) return;
+    const saved = loadQuizSession(folderId);
+    if (!saved) return startQuiz(folderId, true);
+    const folder = state.folders.find(f => f.id === folderId);
+    if (!folder) return;
+
+    state.selectedFolder = folder;
+    state.quiz.questions = saved.questions;
+    state.quiz.index = saved.currentQuestionIndex;
+    state.quiz.score = saved.score;
+    state.quiz.results = saved.results || [];
+    state.pendingFolderId = null;
+
+    $('#quizTestName').textContent = folder.title;
+    navigate('quiz');
+    renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+    const q = state.quiz.questions[state.quiz.index];
+    const total = state.quiz.questions.length;
+    $('#quizCounter').textContent = `Pytanie ${state.quiz.index + 1} / ${total}`;
+    $('#quizScore').textContent = `Poprawne: ${state.quiz.score}`;
+    $('#quizProgress').style.width = `${(state.quiz.index / total) * 100}%`;
+
+    $('#quizQuestion').innerHTML = q.questionText;
+    const optsBox = $('#quizOptions');
+    optsBox.innerHTML = '';
+    q.options.forEach((opt, i) => {
+        const lbl = document.createElement('label');
+        lbl.className = 'option';
+        lbl.innerHTML = `<input type="checkbox" value="${i}" class="answer-input"><span></span>`;
+        lbl.querySelector('span').textContent = opt;
+        optsBox.appendChild(lbl);
+    });
+
+    $('#quizCheckBtn').classList.remove('hidden');
+    $('#quizNextBtn').classList.add('hidden');
+}
+
+function quizCheckAnswer() {
+    const q = state.quiz.questions[state.quiz.index];
+    const inputs = $$('.answer-input');
+    let ok = true;
+    let any = false;
+    const selected = [];
+
+    inputs.forEach((inp, idx) => {
+        const checked = inp.checked;
+        const correct = q.correctIndexes.includes(idx);
+        if (checked) { any = true; selected.push(idx); }
+        inp.disabled = true;
+        if (checked && correct) inp.parentElement.classList.add('correct');
+        else if (checked && !correct) { inp.parentElement.classList.add('incorrect'); ok = false; }
+        else if (!checked && correct) { inp.parentElement.classList.add('missed'); ok = false; }
+    });
+
+    if (!any) {
+        toast('Zaznacz przynajmniej jedną odpowiedź.');
+        inputs.forEach(i => i.disabled = false);
+        return;
+    }
+
+    if (ok) {
+        state.quiz.score += 1;
+        $('#quizScore').textContent = `Poprawne: ${state.quiz.score}`;
+    }
+
+    state.quiz.results.push({
+        correct: ok, selectedIndexes: selected, correctIndexes: q.correctIndexes,
+        questionText: q.questionText, options: q.options
+    });
+    saveQuizSession();
+    $('#quizCheckBtn').classList.add('hidden');
+    $('#quizNextBtn').classList.remove('hidden');
+}
+
+function quizNext() {
+    state.quiz.index += 1;
+    saveQuizSession();
+    if (state.quiz.index < state.quiz.questions.length) {
+        renderQuizQuestion();
+        return;
+    }
+    clearQuizSession(state.selectedFolder.id);
+    showQuizEnd();
+}
+
+function showQuizEnd() {
+    const total = state.quiz.questions.length;
+    $('#endTitle').textContent = 'Koniec quizu!';
+    $('#endSummary').textContent = `${state.selectedFolder.title} · ${state.quiz.score} / ${total} poprawnych odpowiedzi`;
+    $('#endScore').textContent = state.quiz.score;
+    $('#endTotal').textContent = total;
+
+    const list = $('#endResults');
+    list.innerHTML = '';
+    const letters = ['a','b','c','d','e','f'];
+
+    state.quiz.results.forEach((r, idx) => {
+        const item = document.createElement('div');
+        item.className = `result-item ${r.correct ? '' : 'result-item--fail'}`;
+        item.innerHTML = `
+            <div class="result-item__header">
+                <span class="result-item__badge">${r.correct ? '✓' : '✗'}</span>
+                <span class="result-item__num">Pytanie ${idx+1}</span>
+                <span class="result-item__question"></span>
+            </div>
+        `;
+        item.querySelector('.result-item__question').innerHTML = r.questionText.replace(/<br>/g, ' ');
+
+        if (!r.correct) {
+            const opts = document.createElement('div');
+            opts.className = 'result-item__options';
+            r.options.forEach((opt, oi) => {
+                const row = document.createElement('div');
+                const isCorrect = r.correctIndexes.includes(oi);
+                const wasSel = r.selectedIndexes.includes(oi);
+                row.className = 'result-opt' +
+                    (isCorrect ? ' result-opt--correct' : '') +
+                    (wasSel && !isCorrect ? ' result-opt--wrong' : '');
+                row.textContent = `${letters[oi]}) ${opt}`;
+                opts.appendChild(row);
+            });
+            item.appendChild(opts);
+        }
+        list.appendChild(item);
+    });
+
+    navigate('end');
+}
+
+// ── Flashcards mode (test-based) ───────────────────────────
+function startFlashcards(folderId) {
+    const folder = state.folders.find(f => f.id === folderId);
+    if (!folder) return;
+    state.selectedFolder = folder;
+    state.pendingFolderId = null;
+
+    let questions;
+    try {
+        questions = loadQuestions(folder);
+        if (!questions.length) throw new Error('Brak pytań.');
+    } catch (e) {
+        showError(`Nie udało się otworzyć testu „${folder.title}".`);
+        return;
+    }
+
+    state.fc.deck = shuffleArray(questions).map(q => ({ q, status: 'pending' }));
+    state.fc.seen = 0;
+    state.fc.known = 0;
+    state.fc.total = state.fc.deck.length;
+    state.fc.flipped = false;
+    state.fc.current = null;
+
+    $('#fcTestName').textContent = folder.title;
+    navigate('flashcards');
+    nextFlashcard();
+}
+
+function nextFlashcard() {
+    state.fc.flipped = false;
+    $('#flashcard').classList.remove('is-flipped');
+    $('#fcRateHint').classList.remove('hidden');
+
+    const remaining = state.fc.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0) {
+        // done
+        $('#endTitle').textContent = 'Świetnie!';
+        $('#endSummary').textContent = `${state.selectedFolder.title} · oznaczone jako „umiem": ${state.fc.known} / ${state.fc.total}`;
+        $('#endScore').textContent = state.fc.known;
+        $('#endTotal').textContent = state.fc.total;
+        $('#endResults').innerHTML = '';
+        navigate('end');
+        return;
+    }
+
+    state.fc.current = remaining[0];
+    const q = state.fc.current.q;
+    const letters = ['a','b','c','d','e','f'];
+
+    $('#fcFront').innerHTML = q.questionText;
+    const correctOpts = q.options
+        .map((opt, i) => ({ text: opt, correct: q.correctIndexes.includes(i), letter: letters[i] }));
+
+    const all = correctOpts.map(o => `
+        <div class="fc-opt ${o.correct ? 'fc-opt--correct' : ''}">${o.letter}) ${escapeHtml(o.text)}</div>
+    `).join('');
+
+    $('#fcBack').innerHTML = `
+        <div style="font-size:.95rem; opacity:.8; margin-bottom:8px;">Poprawne odpowiedzi:</div>
+        <div class="fc-options-list">${all}</div>
+    `;
+
+    const idx = state.fc.total - remaining.length;
+    $('#fcCounter').textContent = `Fiszka ${idx + 1} / ${state.fc.total}`;
+    $('#fcKnown').textContent = `Umiem: ${state.fc.known}`;
+    $('#fcProgress').style.width = `${((state.fc.total - remaining.length) / state.fc.total) * 100}%`;
+}
+
+function flipFlashcard() {
+    state.fc.flipped = !state.fc.flipped;
+    $('#flashcard').classList.toggle('is-flipped', state.fc.flipped);
+    if (state.fc.flipped) $('#fcRateHint').classList.add('hidden');
+}
+
+function rateFlashcard(known) {
+    if (!state.fc.flipped) {
+        flipFlashcard();
+        toast('Najpierw zobacz odpowiedź.');
+        return;
+    }
+    if (!state.fc.current) return;
+
+    if (known) {
+        state.fc.current.status = 'known';
+        state.fc.known += 1;
+    } else {
+        // move to back of remaining queue
+        state.fc.deck = state.fc.deck.filter(it => it !== state.fc.current).concat([state.fc.current]);
+    }
+    state.fc.seen += 1;
+    nextFlashcard();
+}
+
+// ── Trainer mode (per material) ────────────────────────────
+function loadTrainerData(materialId) {
+    try {
+        const raw = localStorage.getItem(STORAGE.TRAINER(materialId));
+        if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    // first-run: seed with starter cards if any
+    const m = MATERIALS.find(x => x.id === materialId);
+    const seed = (m && m.starterTrainer) ? m.starterTrainer.map((c, i) => ({ id: Date.now() + '_' + i, q: c.q, a: c.a })) : [];
+    return seed;
+}
+function saveTrainerData(materialId, items) {
+    try { localStorage.setItem(STORAGE.TRAINER(materialId), JSON.stringify(items)); } catch(_) {}
+}
+
+function openTrainer(material) {
+    state.trainer.materialId = material.id;
+    state.trainer.materialTitle = material.title;
+    state.trainer.items = loadTrainerData(material.id);
+    state.trainer.editingId = null;
+    $('#trainerTitle').textContent = `Trener · ${material.title}`;
+    $('#trainerQ').value = '';
+    $('#trainerA').value = '';
+    $('#trainerSaveBtn').textContent = 'Dodaj fiszkę';
+    $('#trainerCancelEditBtn').hidden = true;
+    switchTrainerTab(state.trainer.items.length === 0 ? 'edit' : 'study');
+    navigate('trainer');
+}
+
+function switchTrainerTab(tab) {
+    $$('.trainer-tab').forEach(b => b.classList.toggle('is-active', b.dataset.trainerTab === tab));
+    $('#trainerStudy').classList.toggle('hidden', tab !== 'study');
+    $('#trainerEdit').classList.toggle('hidden', tab !== 'edit');
+
+    if (tab === 'study') startTrainerStudy();
+    if (tab === 'edit') renderTrainerList();
+}
+
+function startTrainerStudy() {
+    const items = state.trainer.items;
+    $('#trainerEmpty').classList.toggle('hidden', items.length > 0);
+    $('#trainerStudyBody').classList.toggle('hidden', items.length === 0);
+    if (items.length === 0) return;
+
+    state.trainer.deck = shuffleArray(items).map(it => ({ it, status: 'pending' }));
+    state.trainer.total = state.trainer.deck.length;
+    state.trainer.known = 0;
+    state.trainer.seen = 0;
+    state.trainer.flipped = false;
+    state.trainer.current = null;
+    nextTrainerCard();
+}
+
+function nextTrainerCard() {
+    state.trainer.flipped = false;
+    $('#trainerCard').classList.remove('is-flipped');
+    $('#trainerRateHint').classList.remove('hidden');
+
+    const remaining = state.trainer.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0) {
+        $('#trainerFront').innerHTML = `<div style="text-align:center;"><strong>Brawo!</strong><br>Wszystkie fiszki przerobione.</div>`;
+        $('#trainerBack').innerHTML = `<div>Powodzenia na egzaminie!</div>`;
+        $('#trainerCounter').textContent = `Fiszka ${state.trainer.total} / ${state.trainer.total}`;
+        $('#trainerKnown').textContent = `Umiem: ${state.trainer.known}`;
+        $('#trainerProgress').style.width = '100%';
+        return;
+    }
+
+    state.trainer.current = remaining[0];
+    $('#trainerFront').textContent = state.trainer.current.it.q;
+    $('#trainerBack').textContent = state.trainer.current.it.a;
+    const idx = state.trainer.total - remaining.length;
+    $('#trainerCounter').textContent = `Fiszka ${idx + 1} / ${state.trainer.total}`;
+    $('#trainerKnown').textContent = `Umiem: ${state.trainer.known}`;
+    $('#trainerProgress').style.width = `${(idx / state.trainer.total) * 100}%`;
+}
+
+function flipTrainerCard() {
+    state.trainer.flipped = !state.trainer.flipped;
+    $('#trainerCard').classList.toggle('is-flipped', state.trainer.flipped);
+    if (state.trainer.flipped) $('#trainerRateHint').classList.add('hidden');
+}
+
+function rateTrainerCard(known) {
+    if (!state.trainer.flipped) {
+        flipTrainerCard();
+        toast('Najpierw zobacz odpowiedź.');
+        return;
+    }
+    if (!state.trainer.current) return;
+    if (known) {
+        state.trainer.current.status = 'known';
+        state.trainer.known += 1;
+    } else {
+        state.trainer.deck = state.trainer.deck.filter(it => it !== state.trainer.current).concat([state.trainer.current]);
+    }
+    state.trainer.seen += 1;
+    nextTrainerCard();
+}
+
+function onTrainerFormSubmit(e) {
+    e.preventDefault();
+    const q = $('#trainerQ').value.trim();
+    const a = $('#trainerA').value.trim();
+    if (!q || !a) return;
+
+    if (state.trainer.editingId) {
+        const item = state.trainer.items.find(it => it.id === state.trainer.editingId);
+        if (item) { item.q = q; item.a = a; }
+        state.trainer.editingId = null;
+        $('#trainerSaveBtn').textContent = 'Dodaj fiszkę';
+        $('#trainerCancelEditBtn').hidden = true;
+    } else {
+        state.trainer.items.push({ id: 'fc_' + Date.now(), q, a });
+    }
+    saveTrainerData(state.trainer.materialId, state.trainer.items);
+    $('#trainerQ').value = '';
+    $('#trainerA').value = '';
+    renderTrainerList();
+    toast('Zapisano fiszkę');
+}
+
+function cancelTrainerEdit() {
+    state.trainer.editingId = null;
+    $('#trainerQ').value = '';
+    $('#trainerA').value = '';
+    $('#trainerSaveBtn').textContent = 'Dodaj fiszkę';
+    $('#trainerCancelEditBtn').hidden = true;
+}
+
+function renderTrainerList() {
+    const list = $('#trainerList');
+    list.innerHTML = '';
+    if (state.trainer.items.length === 0) {
+        list.innerHTML = `<p class="muted" style="text-align:center; padding:24px;">Brak fiszek — dodaj pierwszą powyżej.</p>`;
+        return;
+    }
+    state.trainer.items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.className = 'trainer-item';
+        row.innerHTML = `
+            <span class="trainer-item__num">${idx + 1}</span>
+            <div class="trainer-item__body">
+                <div class="trainer-item__q"></div>
+                <div class="trainer-item__a"></div>
+            </div>
+            <div class="trainer-item__actions">
+                <button class="trainer-item__btn" data-act="edit" title="Edytuj">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="trainer-item__btn is-danger" data-act="del" title="Usuń">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                </button>
+            </div>
+        `;
+        row.querySelector('.trainer-item__q').textContent = it.q;
+        row.querySelector('.trainer-item__a').textContent = it.a;
+        row.querySelector('[data-act="edit"]').addEventListener('click', () => {
+            state.trainer.editingId = it.id;
+            $('#trainerQ').value = it.q;
+            $('#trainerA').value = it.a;
+            $('#trainerSaveBtn').textContent = 'Zapisz zmiany';
+            $('#trainerCancelEditBtn').hidden = false;
+            $('#trainerQ').focus();
+            $('#trainerQ').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        row.querySelector('[data-act="del"]').addEventListener('click', () => {
+            if (!confirm('Usunąć tę fiszkę?')) return;
+            state.trainer.items = state.trainer.items.filter(x => x.id !== it.id);
+            saveTrainerData(state.trainer.materialId, state.trainer.items);
+            renderTrainerList();
+            toast('Usunięto');
+        });
+        list.appendChild(row);
+    });
+}
+
+// ── Toast ──────────────────────────────────────────────────
+let toastTimer;
+function toast(msg) {
+    const el = $('#toast');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    requestAnimationFrame(() => el.classList.add('is-visible'));
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+        el.classList.remove('is-visible');
+        setTimeout(() => el.classList.add('hidden'), 250);
+    }, 2200);
+}
+
+/* ──────────────────────────────────────────────────────────
+   Special tests content (preserved from v1)
+   ────────────────────────────────────────────────────────── */
+const SP_CONTENT = {
+procedury: `1. W Polsce procedura odwoławcza została określona w:
+Prawie Celnym przez odwołanie do odpowiednich przepisów Ordynacji Podatkowej;
+Kodeksie Postępowania Administracyjnego;
+Prawie Administracyjnym.
+X100
+
+2. Decyzje „z urzędu" są wydawane:
+Na wniosek zgłaszającego;
+Bez uprzedniego wniosku osoby zainteresowanej;
+Zarówno na wniosek jak i bez uprzedniego wniosku osoby zainteresowanej.
+X010
+
+3. Decyzja niekorzystna to:
+Decyzja wydawana na wniosek w pełni go uwzględniająca;
+Tylko i wyłącznie decyzja wydana z urzędu
+Decyzja wydana na wniosek nie w pełni go uwzględniająca
+X001
+
+4. Organ celny, wszczynając postępowanie z urzędu:
+Wydaje postanowienie o wszczęciu postępowania
+Wydaje powiadomienie o wszczęciu postępowania
+Nie wydaje żadnego odrębnego aktu administracyjnego o wszczęciu postępowania
+X001
+
+5. Odwołanie od decyzji przysługuje:
+Tylko w przypadku decyzji niekorzystnych;
+Niezależnie od rodzaju wydanego rozstrzygnięcia;
+Wyłącznie przypadku decyzji wydawanych „na wniosek zainteresowanego"
+X010
+
+6. Przed wydaniem decyzji niekorzystnej organy celne dają wnioskodawcy możliwość przedstawienia stanowiska w terminie:
+14 dni;
+7 dni;
+30 dni.
+X001
+
+7. Odwołanie od decyzji składa się:
+w każdym państwie członkowskim UE;
+w państwie członkowskim, w którym decyzja została wydana
+jedynie w Brukseli.
+X010
+
+8. Wydanie decyzji i powiadomienie o niej winno nastąpić w terminie:
+120 dni od daty przyjęcia wniosku;
+30 dni od daty przyjęcia wniosku;
+90 ,dni od daty przyjęcia wniosku.
+X100
+
+9. Publiczna usługa hybrydowa w zakresie doręczeń
+jest realizowana prze InPost;
+jest realizowana przez Pocztę Polska;
+jest aktualnie niedostępna.
+X010
+
+10. Podstawowa forma doręczeń to:
+Doręczenie korespondencji na adres elektroniczny
+Doręczenie w ramach publicznej usługi hybrydowej
+Doręczenie przez awizo.
+X100
+
+11. Niedopełnienie obowiązku zgłoszenia przywozu do Polski środków pieniężnych
+Nie podlega żadnej karze;
+Podlega karze grzywny za przestępstwo lub wykroczenie skarbowe;
+Podlega karze ograniczenia wolności.
+X010
+
+12. Decyzja zaczyna obowiązywać:
+Z dniem jej doręczenia lub uznania za doręczoną;
+Po 14 dniach od doręczenia;
+Co do zasady po 30 dniach.
+X100
+
+13. Odwołanie o decyzji w zakresie prawa celnego wnosi się:
+W terminie 30 dni od doręczenia jej stronie;
+W terminie 14 dni od doręczenia jej stronie;
+W terminie 7 dni od doręczenia jej stronie
+X010
+
+14. W Polsce do postępowania w sprawach celnych stosuje się przepisy:
+Ustawy Ordynacja podatkowa;
+Ustawy Kodeks Postępowania Administracyjnego;
+Tylko i wyłącznie Unijnego Kodeksu Celnego
+X100`,
+
+pochodzenie: `1. Pochodzenie towaru udokumentowane poprzez przedstawienie niepreferencyjnego świadectwa pochodzenia pozwala:
+Skorzystać z obniżonej stawki celnej
+Skorzystać z zerowej stawki celnej
+Zastosować stawkę celną „erga omnes".
+X001
+
+2. Strefy wolnego handlu pozwalają na:
+Zastosowanie preferencji wynikających ze wzajemnych umów handlowych
+Zastosowanie preferencji wynikających z jednostronnych uzgodnień UE
+Zastosowanie preferencji na podstawie świadectwa ATR.
+X100
+
+3. Preferencje wynikające z unii celnej oparte są na:
+Pochodzeniu towarów
+Statusie celnym towarów
+Pochodzeniu i statusie celnym
+X010
+
+4. Ważność świadectwa ATR wynosi:
+4 miesiące
+90 dni
+2 lata
+X100
+
+5. UE zawarła unię celną z:
+Turcją, Andorą i San Marino
+Jedynie z Turcją
+Turcją i Szwajcarią
+X100
+
+6. Upoważniony eksporter:
+Sporządza deklarację pochodzenia, tylko wtedy gdy wartość towaru przekracza 4000 EUR;
+Nie jest związany żadnym limitem wartości produktów pochodzących
+Sporządza deklarację o pochodzeniu niepreferencyjnym.
+X010
+
+7. Ogólne zasady pochodzenia preferencyjnego obejmują:
+Zasadę bezpośredniego transportu, tożsamości, terytorialności i dokumentowania pochodzenia
+Tylko zasadę bezpośredniego transportu i terytorialności
+Jedynie zasadę dokumentowania i tożsamości.
+X100
+
+8. REX to :
+system zarejestrowanych eksporterów min. w ramach Ogólnego Systemu Preferencji (GSP)
+skrót dot. zasady bezpośredniego transportu
+produkty całkowicie uzyskane
+X100
+
+9. Świadectwo o niemaniplulowaniu towarem:
+służy potwierdzeniu zachowania dozoru celnego dla towarów transportowanych między stronami umowy o wolnym handlu
+dokumentuje preferencyjne pochodzenie towaru
+potwierdza status celny towaru.
+X100
+
+10. „Wystarczające przetwarzanie lub obróbka" to procesy, którym poddawane są:
+towary unijne by uzyskać status nieunijnych
+towary niepochodzące by uzyskać status pochodzących
+towary z krajów trzecich by uzyskać status unijny
+X010
+
+11. EUR 1, EUR-MED to dowody pochodzenia stosowane:
+w GSP
+W strefach wolnego handlu
+W unii celnej
+X010
+
+12. Preferencje jednostronne (GSP) przyznawane są:
+Jedynie krajom Afryki
+Krajom rozwijającym się i najsłabiej rozwiniętym
+Turcji, San Marino i Andorze
+X010
+
+13. Umowy o wolnym handlu:
+To negocjowany, wzajemny system preferencji
+To przyznawany system preferencji jednostronnych
+Opierają się na unii celnej
+X100
+
+14. Stawka celna stosowana w oparciu o KNU to:
+Stawka celna konwencyjna
+Stawka celna preferencyjna
+Stawka celna obniżona
+X100
+
+15. WIP w Polsce wydaje:
+Każdy NUCS
+Dyrektor Krajowej Informacji Skarbowej
+Minister Finansów
+X010
+
+16. Deklaracja o pochodzeniu towaru może być wystawiona :
+Jedynie przez upoważnionego eksportera
+Tylko i wyłącznie przez nieupoważnionego eksportera
+Zarówno przez upoważnionego jak i przez nieupoważnionego eksportera
+X001`,
+
+taryfa: `1. Nomenklatura taryfowa zbudowana jest z:
+a) Stawek celnych, wykazu alfabetycznego towarów,
+b) Tylko wykazu alfabetycznego towarów,
+c) Sekcji, działów, pozycji i podpozycji.
+X001
+
+2. Pozycja HS jest określona na poziomie:
+a) 4 cyfr,
+b) 6 cyfr,
+c) 10 cyfr.
+X100
+
+3. Oznaczenie AD F/M oznacza we Wspólnej Taryfie Celnej:
+a) Dodatkowe cło za cukier,
+b) Dodatkowe cło za mąkę;
+c) Dodatkowe cło za alkohol.
+X010
+
+4. Skrót CN oznacza:
+a) Nomenklatura Scalona,
+b) System Zharmonizowany,
+c) Ogólne Reguły Interpretacji Nomenklatury Scalonej.
+X100
+
+5. Dla towaru, o wartości poniżej 700 EUR, o charakterze niehandlowym, przewożonego w bagażu podróżnego stosuje się:
+a) Stawkę celną procentową w zależności od kodu towaru;
+b) Ryczałtową stawkę celną w wysokości 2,5 % od wartości
+c) Stawkę celną kwotowa w zależności od masy towaru.
+X010
+
+6. WIT to decyzja organu celnego dot. taryfikacji wydawana w Polsce przez:
+a) Dyrektorów Izby Administracji Skarbowej;
+b) Naczelników Urzędów Celno-Skarbowych;
+c) Dyrektora Krajowej Informacji Skarbowej.
+X001
+
+7. Dodatkowe cło za cukier we Wspólnej Taryfie Celnej jest oznaczone skrótem:
+a) EA
+b) AD S/Z
+c) AD F/M.
+X010
+
+8. Futerał na broń (pistolet), przewożony wraz z tym pistoletem, nadający się do długotrwałego użytkowania klasyfikuje się:
+a) Jako opakowanie jednorazowego użytku;
+b) Wraz z towarem, do pozycji dla pistoletów;
+c) Zgodnie z regułą reguła ORINS 5B.
+X010
+
+9. Reguła 5 ORINS służy do:
+a) Klasyfikacji opakowań przewożonych wraz z towarem
+b) Klasyfikacji towaru do odpowiednich podpozycji CN;
+c) Klasyfikacji mieszanin.
+X100
+
+10. Wyroby niegotowe, mające zasadniczy charakter wyrobu gotowego klasyfikuje się zgodnie z :
+a) 2a ORINS;
+b) 4 ORINS;
+c) 6 ORINS.
+X100
+
+11. Nomenklatura taryfowa dzieli się na:
+a) 5 sekcji;
+b) 21 sekcji;
+c) 99 sekcji.
+X010
+
+12. Do specjalnego użytku przez właściwe organy unijne zarezerwowany jest:
+a) Dział 77;
+b) Dział 98 i 99
+c) Dział 102.
+X010
+
+13. Kod CN jest określany przez:
+a) 4 cyfry, gdzie dwie pierwsze cyfry to numer działu;
+b) 8 cyfr ;
+c) 2 cyfry, które odnoszą się do numeru działu
+X010
+
+14. Załącznik I do Rozp. Rady 2658/87:
+a) Jest publikowany corocznie, nie później niż do 31 października danego roku
+b) Jest aktualizowany raz na 10 lat;
+c) Nie podlega corocznym przeglądom ani aktualizacji.
+X100
+
+15. Element rolny w Taryfie Celnej określany jest:
+a) HS
+b) CN
+c) EA.
+X001
+
+16. Tytuły sekcji, działów, poddziałów, przy klasyfikacji towarów mają znaczenie:
+a) Prawne;
+b) Wyłącznie orientacyjne;
+c) Najważniejsze.
+X010
+
+17. System ISZTAR:
+a) Zawiera nomenklaturę towarową, stawki celne, dane krajowe w zakresie podatków, ograniczenia w imporcie i eksporcie;
+b) Zawiera tylko dodatkowe kody TARIC, np. kody Meursinga;
+c) Zawiera jedynie nomenklaturę TARIC
+X100
+
+18. TARIC to Zintegrowana Taryfa Wspólnot Europejskich która jest:
+a) Źródłem prawa UE w zakresie taryfikacji;
+b) Internetową bazą danych prowadzoną przez DG TAXUD,
+c) bazą danych ustanowioną przez Polskie Ministerstwo Finansów.
+X010
+
+19. W nomenklaturze taryfowej ma zastosowanie tzw. zasada stopnia przetworzenia która:
+a) Dotyczy tylko towarów rolnych;
+b) Oznacza drogę towaru od surowca, przez półprodukt do produktu gotowego;
+c) Odnosi się do reguł pochodzenia towaru.
+X010
+
+20. Wyroby niekompletne, niegotowe, rozmontowane lub niezmontowane klasyfikuje się:
+a) Zgodnie z regułą 2A ORINS;
+b) Jako części towaru gotowego;
+c) W zależności od jego zasadniczego składnika/komponentu
+X100
+
+21. Części ogólnego użytku
+a) Klasyfikuje się jako części jednego konkretnego, głównego towaru;
+b) Do własnych pozycji, np.: gwoździe, zatrzaski;
+c) Są nieistotne w procesie klasyfikacji towarowej.
+X010
+
+22. Maszyna, składająca się z kilku maszyn, przeznaczonych do pełnienia dwóch lub więcej funkcji wzajemnie uzupełniających się, taryfikowana jest:
+a) Do pozycji zarezerwowanej dla maszyny występującej w nazwie jako główna
+b) Do pozycji odpowiedniej dla maszyny wykonującej podstawową funkcję;
+c) Do pozycji maszyny występującej jako pierwsza we wspólnej taryfie celnej
+X010
+
+23. W procesie klasyfikacji taryfowej zawsze korzystamy z :
+a) Pierwszej Ogólnej Reguły Interpretacyjnej
+b) Z każdej reguły ORINS;
+c) Tylko jednej reguły, która odpowiada naszemu towarowi
+X100`,
+
+wartosc: `1. Wartość celna stanowi podstawę:
+a) obliczenia cła;
+b) ustalenia statusu celnego towaru;
+c) ustalenia preferencyjnego pochodzenia towaru.
+X100
+
+2. UKC wprowadza kolejność stosowania metod ustalania wartości celnej. Wyjątkiem są:
+a) metoda wartości transakcyjnej i towarów identycznych, stosowane zamiennie
+b) metoda dedukcyjna i wartości kalkulowanej, których kolejność może być odwrócona
+c) metoda towarów identycznych i podobnych, których kolejność może być odwrócona.
+X010
+
+3. O podmiotach powiązanych mówimy, gdy:
+a) są członkami tej samej rodziny;
+b) gdy kupują towar u tego samego producenta;
+c) są przewoźnikiem i odbiorca towaru.
+X100
+
+4. Do wartości transakcyjnej dodaje się:
+a) koszty transportu po ich wprowadzeniu na obszar UE;
+b) prowizje i koszty pośrednictwa;
+c) koszty prac badawczych, inżynieryjnych, przywożonych towarów prowadzone po ich wprowadzeniu na obszar UE.
+X010
+
+5. Do wartości transakcyjnej nie wlicza się:
+a) kosztów pośrednictwa;
+b) kosztów transportu po ich wprowadzeniu na obszar celny UE;
+c) kosztów transportu do miejsca wprowadzenia towaru na obszar celny UE.
+X010
+
+6. Reguły INCOTERMS regulują:
+a) podział kosztów i ryzyka dostawy między sprzedającym, a kupującym;
+b) podział kosztów między przewoźnikiem, a producentem towaru;
+c) kwestie klasyfikacji towarowej
+X100
+
+7. Podstawą do zakwestionowania zadeklarowanej wartości może być:
+a) wątpliwość co do wiarygodności i autentyczności dokumentów, np. faktury;
+b) brak preferencyjnego dowodu pochodzenia towaru;
+c) pewność, że zadeklarowana wartość stanowi całkowitą zapłacona kwotę za towar.
+X100
+
+8. Zgodnie z Rozp. Delegowanym 2015/2446:
+a) istnieje 5 metod zastępczych ustalania wartości celnej ;
+b) istnieje 6 metod ustalania wartości celnej towaru;
+c) metody ustalania wartości celnej wskazano w UKC, nie w Rozp. Delegowanym
+X001
+
+9. Którą z poniższych metod ustalania wartości celnej towaru stosuje się w pierwszej kolejności:
+a) metoda dedukcyjna;
+b) metoda towarów identycznych;
+c) metoda towarów podobnych
+X010
+
+10. Gdy sprzedaż lub cena towaru są uzależnione od warunków lub świadczeń, których wartości nie można ustalić:
+a) nie ma możliwości zastosowania wartości transakcyjnej;
+b) stosuje się metodę ostatniej szansy,
+c) nie można zaimportować towaru.
+X100
+
+11. Honoraria, tantiemy, opłaty licencyjne są dodawane do wartości transakcyjnej:
+a) gdy sprzedający domaga się od kupującego takiej płatności jako warunek sprzedaży;
+b) gdy towary mogą być sprzedane bez płatności tych honorariów;
+c) tylko, gdy są wymagane na terenie UE.
+X100
+
+12. Przeliczenia kursu waluty na PLN, na potrzeby ustalenia wartości celnej, dokonuje się na podstawie:
+a) kursów dziennych walut obcych;
+b) bieżących kursów średnich walut obcych ogłaszanych przez NBP;
+c) kursów dziennych z dnia przyjęcia zgłoszenia w procedurze dopuszczenia do obrotu.
+X010
+
+13. Koszty robocizny związanej z pakowaniem towaru mogą stanowić element dodawany do wartości transakcyjnej:
+a) nie, nigdy
+b) tak, to jeden z możliwych elementów doliczanych do ceny faktycznie zapłaconej lub należnej;
+c) tak, ale tylko w przypadku szklanych butelek.
+X010
+
+14. W sytuacji zakwestionowania wartości transakcyjnej:
+a) należy unieważnić zgłoszenie;
+b) wartość celną należy ustalić metodami zastępczymi ustalania wartości celnej;
+c) należy jedynie dokonać weryfikacji faktur w kraju wystawienia.
+X010`,
+
+kks: `1. Właściwość rzeczowa NUCS obejmuje:
+a) przestępstwa skarbowe i wykroczenia skarbowe,
+b) wskazane w ustawie o KAS przestępstwa z KK oraz wskazane w KKS przestępstwa skarbowe i wykroczenia skarbowe,
+c) wskazane w ustawie o KAS przestępstwa z KK, wskazane w KKS przestępstwa skarbowe i wykroczenia skarbowe oraz czyny zabronione określone w ustawach szczególnych wskazanych w ustawie o KAS a także niektóre wykroczenia z KW i innych ustaw;
+X001
+2. NUCS prowadzi postępowanie przygotowawcze w sprawach o przestępstwa z art. 258, art. 270, art. 270a, art. 271, art. 271a, art. 273, art. 277a, art. 286 § 1 oraz art. 299 KK, gdy:
+a) wartość przedmiotu przestępstwa stanowi mienie wielkiej wartości i zostały ujawnione przez organy KAS
+b) zostały ujawnione przez SCS i w związku z nimi nastąpiło uszczuplenie lub narażenie na uszczuplenie należności publicznoprawne
+c) zostały ujawnione przez KAS i w związku z nimi nastąpiło uszczuplenie lub narażenie na uszczuplenie należności publicznoprawnej,
+X001
+3. NUCS prowadzi postępowanie o czyny zabronione z ustaw szczególnych, gdy:
+a) czyn został ujawniony przez KAS,
+b) przestępstwo skarbowe, wykroczenie lub przestępstwo zostało ujawnione przez SCS.
+c) przestępstwo lub wykroczenie zostało ujawnione przez SCS
+X001
+4. Finansowym organem postępowania przygotowawczego jest:
+a) Krajowa Administracja Skarbowa
+b) Dyrektor Izby Administracji Skarbowej
+c) Naczelnik Urzędu Celno-Skarbowego
+X001
+5. Finansowym organem postępowania przygotowawczego nie jest:
+a) Straż Graniczna
+b) Naczelnik Urzędu Celno-Skarbowego
+c) Szef Krajowej Administracji Skarbowej
+X100
+
+1. Jeżeli przepis części szczególnej KKS określa, że dany czyn zagrożony jest karą „pozbawienia wolności" bez wskazania jej wymiaru, to trwa ona:
+a) najkrócej 5 dni, najdłużej 5 lat,
+b) najkrócej 5 dni, najdłużej 3 lata,
+c) od 6 miesięcy do 8 lat;
+X100
+2. Kara grzywny za przestępstwo skarbowe określana jest w stawkach dziennych, w wymiarze:
+a) od 10 do 540,
+b) od 10 do 720,
+c) od 10 do 2000;
+X010
+3. Jeżeli przepis części szczególnej KKS posługuje się terminem „ustawowy próg" oznacza to, że czyn taki jest:
+a) wykroczeniem zagrożonym karą grzywny w granicach od jednej dziesiątej do dwudziestokrotnej wysokości minimalnego wynagrodzenia
+b) wykroczeniem skarbowym zagrożonym karą w granicach od jednej dziesiątej do pięciokrotnej wysokości minimalnego wynagrodzenia,
+c) wykroczeniem skarbowym zagrożonym karą grzywny wyrażoną kwotowo;
+X001
+4. Wykroczeniem skarbowym jest niezgłoszenie organom celnym wywozu lub wwozu do/z Unii Europejskiej środków pieniężnych jeżeli ich wartość/równowartość:
+a) nie przekracza kwoty małej wartości,
+b) jest równa lub wyższa 10.000 euro,
+c) a) i b),
+X001
+5. Kara grzywny za wykroczenie skarbowe wymierzana jest kwotowo w granicach:
+a) od jednej dziesiątej do dwudziestokrotnej wysokości minimalnego wynagrodzenia,
+b) od jednej dziesiątej do pięciokrotnej wysokości minimalnego wynagrodzenia,
+c) od jednej dziesiątej do dziesięciokrotnej wysokości minimalnego wynagrodzenia.
+X010
+
+1. Zgodnie z definicją w ustawie Prawo własności przemysłowej, znakiem towarowym podrobionym jest:
+a) użyty bezprawnie znak identyczny lub taki, który nie może być odróżniony w zwykłych warunkach obrotu od znaków zarejestrowanych, dla towarów objętych prawem ochronnym,
+b) użyty nielegalnie znak tożsamy lub taki, który nie może być odróżniony w warunkach gospodarczych od znaków zarejestrowanych, dla innych towarów objętych prawem ochronnym,
+c) użyty nielegalnie znak tożsamy lub taki, który nie może być odróżniony w warunkach gospodarczych od znaków zarejestrowanych, dla innych towarów objętych prawem ochronnym, przez konsumenta;
+X100
+2. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione, a polega na:
+a) przygotowaniu do przywozu do Polski środków odurzających wbrew przepisom ustawy o przeciwdziałaniu narkomanii,
+b) udzielaniu innej osobie środka odurzającego wbrew przepisom ustawy o przeciwdziałaniu narkomanii,
+c) uprawie krzewu konopi indyjskich wbrew przepisom ustawy o przeciwdziałaniu narkomanii;
+X100
+3. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione, a polega na:
+a) prowadzeniu reklamy lub promocji substancji psychotropowych wbrew przepisom ustawy o przeciwdziałaniu narkomanii,
+b) kradzieży środków odurzających,
+c) przewozie przez terytorium Polski substancji psychotropowych wbrew przepisom ustawy o przeciwdziałaniu narkomanii;
+X001
+4. Z której ustawy występki są ścigane na wniosek:
+a) Ustawy Prawo Własności Przemysłowej i Ustawy o ochronie przyrody,
+b) Ustawy o przeciwdziałaniu narkomani i Ustawy o prawie autorskim i prawach pokrewnych,
+c) Ustawy Prawo Własności Przemysłowej i Ustawy o prawie autorskim i prawach pokrewnych;
+X001
+5. W której ustawie znajdują się czyny zabronione zarówno jako zbrodnia jak i wykroczenie, których ściganie jest we właściwości rzeczowej NUCS:
+a) Ustawie o wyrobie alkoholu etylowego oraz wytwarzaniu wyrobów tytoniowych,
+b) Ustawie o przeciwdziałaniu narkomani,
+c) Ustawie o bezpieczeństwie obrotu prekursorami materiałów wybuchowych.
+X010
+6. Naczelnik urzędu celno-skarbowego posiada uprawnienia do ścigania sprawcy przestępstwa jeżeli zostało przez niego ujawnione a polega na:
+a) dokonywaniu obrotu towarem z podrobionym znakiem towarowym,
+b) przypisaniu sobie autorstwa,
+c) zgłoszeniu cudzego wynalazku w celu uzyskania patentu, nie będąc do tego uprawnionym
+X100
+
+1. Organy KAS ujawniły „fabrykę pustych faktur", które przez szereg firm zostały wykorzystane do wyłudzenia podatku Vat. W sprawie wszczęto postępowanie przygotowawcze o przestępstwo z art. 271a § 1 KK w zb z art. 76 § 1 KKS i art. 62 § 2 KKS w zw. z art. 8 § 1 KKS, nadzór nad tym postępowaniem sprawuje:
+a) DIAS jeżeli jest prowadzone w formie dochodzenia a prokurator jeśli jest prowadzone w formie śledztwa,
+b) Zawsze prokurator,
+c) Prokurator ale gdy mamy do czynienia ze zorganizowaną grupą przestępczą,
+X010
+2. Ujawniono przypadek wystawienia faktur, poświadczających nieprawdę co do okoliczności faktycznych mogących mieć znaczenie dla określenia wysokości należności publicznoprawnej. Powyższe należy zakwalifikować jako przestępstwo z art. 271a KK gdy,
+a) Faktury zawierają kwotę należności ogółem, której łączna wartość jest znaczna,
+b) Prokurator tak postanowi;
+c) Faktury zawierają kwotę podatku, której wartość jest wielka,
+X100
+3. Wskaż przypadek „idealnego zbiegu" czynów zabronionych i stosowania art. 8 § 1 KKS:
+a) Art. 62 § 2 KKS w zbiegu z art. 271a KK,
+b) Art. 62 § 2 KKS w zbiegu z art. 76 § 2 KKS,
+c) Art. 271a KK w zbiegu z art. 258 KK,
+X100
+4. Jako zbrodnie (potocznie określane „zbrodniami vatowskimi lub fakturowymi") kwalifikowane są następujące przestępstwa:
+a) art. 270a § 2 KK, art. 271a § 2 KK i art. 277a § 1 KK,
+b) art. 62 § 2 KKS w zbiegu z art. 76 § 1 KKS,
+c) W sprawach gospodarczych zbrodnie nie występują, są zarezerwowane dla najcięższych przestępstw (morderstwo, handel narkotykami na wielką skalę itp.),
+X100
+5. Czy w KKS występują przestępstwa kwalifikowane jako zbrodnie?
+a) Tak jeśli uszczuplono podatek w kwocie której wartość jest wielka,
+b) Nie
+c) Nie, chyba że kwota uszczuplonego podatku przekracza 200.000 zł
+X010
+
+1. Określenie „znaczna wartość" jest pojęciem związanym z:
+a) Prawem karnym skarbowym
+b) Prawem karnym
+c) Kodeksem Wykroczeń
+X010
+2. Jednym ze sposobów wszczęcia dochodzenia jest:
+a) sporządzenie notatki służbowej,
+b) zatwierdzenie przez prokuratora rejonowego przeprowadzonego wcześniej przeszukania,
+c) przeszukanie wykonane w granicach koniecznych dla zabezpieczenia śladów i dowodów przestępstwa skarbowego.
+X001
+3. Jakiej czynności nie wykonujemy w trybie art. 308 kpk
+a) przeszukania
+b) tymczasowego zajęcia mienia ruchomego
+c) końcowego zaznajomienia z materiałem dowodowym
+X001
+4. Określenie „znaczna wartość" oznacza mienie, którego wartość w chwili czynu zabronionego:
+a) Nie przekracza 200 tyś. zł
+b) Jest równa 200 tyś zł
+c) Przekracza 200 tyś zł
+X001
+5. Określenie „duża wartość" jest pojęciem:
+a) Prawa karnego skarbowego i zachodzi gdy wartość uszczuplonego podatku przekracza 200 x minimalnego wynagrodzenia
+b) Prawa karnego skarbowego i zachodzi gdy wartość uszczuplonego podatku przekracza 500 x minimalnego wynagrodzenia
+c) Prawa karnego i zachodzi gdy wartość uszczuplonego podatku przekracza 500 x minimalnego wynagrodzenia
+X010
+6. Przesłuchanie osoby podejrzanej w trybie art. 308 § 2 kpk zaczyna się od:
+a) Pytania o przebieg zdarzenia
+b) Informacji o treści zarzutu wpisanego do protokołu przesłuchania podejrzanego
+c) Zapoznania jej z treścią postanowienia o przedstawieniu zarzutów
+X010
+7. Czynności w niezbędnym zakresie (prowadzone w trybie art. 308 kpk) mogą być wykonywane w ciągu:
+a) 5 dni od dnia pierwszej czynności
+b) 14 dni od dnia pierwszej czynności
+c) 7 dni od dnia pierwszej czynności
+X100
+8. Celem dochodzenia prowadzonego w niezbędnym zakresie (art. 308 kpk) jest:
+a) ustalenie, czy zachodzi podejrzenie popełnienia przestępstwa,
+b) przyjęcie wniosku o ściganie,
+c) zabezpieczenie śladów i dowodów przestępstwa przed ich utratą
+X001
+9. W razie złożenia wniosku o ściganie niektórych tylko sprawców, obowiązek ścigania obejmuje:
+a) również inne osoby, których czyny pozostają w ścisłym związku z czynem osoby wskazanej we wniosku, o czym należy uprzedzić składającego wniosek,
+b) inne osoby, których czyny są związane z czynem osoby wskazanej we wniosku, o czym nie należy uprzedzać składającego wniosek,
+c) obejmuje inne osoby, których czyny nie muszą być związane z czynem osoby wskazanej we wniosku, o czym nie należy uprzedzić składającego wniosek.
+X100
+10. Wniosek o ściganie może zostać cofnięty w postępowaniu przygotowawczym za zgodą prokuratora a w postępowaniu sądowym:
+a) Za zgodą prokuratora - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej,
+b) Za zgodą sądu - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej, jeżeli nie sprzeciwi się temu pokrzywdzony,
+c) Za zgodą sądu - aż do zamknięcia przewodu sądowego na pierwszej rozprawie głównej, jeżeli nie sprzeciwi się temu oskarżyciel publiczny obecny na rozprawie lub posiedzeniu.
+X001
+
+1. Jeżeli dane istniejące w chwili wszczęcia dochodzenia lub zebrane w jego toku uzasadniają dostatecznie podejrzenie, że czyn popełniła określona osoba:
+a) sporządza się postanowienie o przedstawieniu zarzutów, niezwłocznie ogłaszano je podejrzanemu i przesłuchano go w charakterze podejrzanego,
+b) wydaje się postanowienie o przedstawieniu zarzutów, ogłasza je podejrzanemu i przesłuchuje go w charakterze podejrzanego
+c) wydaje się postanowienie o przedstawieniu zarzutów, niezwłocznie ogłasza je podejrzanemu i przesłuchuje go w charakterze podejrzanego;
+X001
+2. Za podejrzanego uważa się osobę:
+a) co do której wydano postanowienie o przedstawieniu zarzutów albo której bez wydania takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze podejrzanego,
+b) co do której wydano postanowienie o przedstawieniu zarzutów albo której bez wydania takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze osoby podejrzanej,
+c) której ogłoszono postanowienie o przedstawieniu zarzutów albo której bez takiego postanowienia, postawiono zarzut w związku z przystąpieniem do przesłuchania w charakterze podejrzanego;
+X100
+3. Stronami postępowania przygotowawczego w sprawach o przestępstwo skarbowe są:
+a) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz pokrzywdzony
+b) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz interwenient.
+c) podejrzany, pokrzywdzony oraz interwenient.
+X010
+4. Stroną postępowania przygotowawczego w sprawach o wykroczenie skarbowe nie jest:
+a) podmiot pociągnięty do odpowiedzialności posiłkowej,
+b) podejrzany,
+c) Interwenient
+X100
+5. Stronami postępowania przygotowawczego w sprawach o przestępstwo są:
+a) podejrzany oraz pokrzywdzony
+b) podejrzany, podmiot pociągnięty do odpowiedzialności posiłkowej oraz interwenient.
+c) podejrzany, pokrzywdzony oraz interwenient.
+X100
+6. Z tytułu sprawowanego nadzoru prokurator może w szczególności:
+a) przejąć sprawę do swego prowadzenia;
+b) zmieniać i uchylać postanowienia i zarządzenia wydane przez prowadzącego postępowanie
+c) obie odpowiedzi są prawidłowe
+X001
+7. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce gdy:
+a) podejrzany nie ukończył 18 lat;
+b) podejrzany jest głuchy, niemy lub niewidomy;
+c) obie odpowiedzi są prawidłowe
+X001
+8. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce gdy:
+a) zachodzi uzasadniona wątpliwość, czy zdolność podejrzanego rozpoznania znaczenia czynu lub kierowania swoim postępowaniem nie była w czasie popełnienia tego czynu wyłączona lub w znacznym stopniu ograniczona;
+b) zachodzi uzasadniona wątpliwość, czy stan jego zdrowia psychicznego pozwala na udział w postępowaniu lub prowadzenie obrony w sposób samodzielny oraz rozsądny.
+c) obie odpowiedzi są prawidłowe
+X001
+9. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o wykroczenie skarbowe ma miejsce
+a) jeżeli prokurator, powołuje biegłego lekarza psychiatrę,
+b) gdy postępowanie prowadzone jest w formie śledztwa,
+c) obie odpowiedzi są błędne;
+X001
+10. Obligatoryjny nadzór prokuratora nad postępowaniem przygotowawczym w sprawie o przestępstwo skarbowe ma miejsce
+a) gdy sąd zastosował tymczasowe aresztowanie podejrzanego,
+b) gdy podejrzany nie ma polskiego obywatelstwa,
+c) obie odpowiedzi są prawidłowe
+X100
+
+1. Jeżeli zatrzymanie rzeczy w trybie art. 308 kpk odbyło się przymusowo, ustawowy termin doręczenia postanowienia prokuratora o zatwierdzeniu tej czynności wynosi:
+a) 7 dni,
+b) 14 dni,
+c) 5 dni;
+X100
+2. Jeżeli zatrzymanie rzeczy w trybie art. 308 kpk odbyło się dobrowolnie ale uprawniony złożył wniosek o doręczenie mu, postanowienia prokuratora o zatwierdzeniu tej czynności, ustawowy termin doręczenia wynosi:
+a) 7 dni,
+b) 14 dni,
+c) Nie jest określony;
+X010
+3. Ustawowy termin do zatwierdzenia przez prokuratora przeszukania dokonanego w trybie art. 308 kpk wynosi:
+a) 7 dni,
+b) 14 dni,
+c) 5 dni;
+X100
+4. Oględzin lub badań ciała, które mogą wywołać uczucie wstydu, zgodnie z kpk:
+a) powinna dokonać osoba tej samej płci, chyba że łączą się z tym szczególne trudności,
+b) musi zawsze dokonać osoba tej samej płci
+c) Sytuacja ta nie jest unormowana przez kpk
+X100
+5. Zatrzymane rzeczy należy niezwłocznie zwrócić, jeżeli zatrzymanie rzeczy (lub przeszukanie) nastąpiło bez uprzedniego polecenia prokuratora, a w ciągu 7 dni od dnia czynności nie nastąpiło zatwierdzenie tej czynności, chyba że rzeczy wydano dobrowolnie, a osoba uprawniona nie złożyła wniosku o doręczenie jej:
+a) postanowienia prokuratora w przedmiocie zatwierdzenia czynności,
+b) postanowienia Dyrektora IAS w przedmiocie zatwierdzenia czynności,
+c) postanowienia NUCS w przedmiocie zatwierdzenia czynności.
+X100
+
+1. Zatrzymanego należy natychmiast zwolnić jeżeli:
+a) w ciągu 48 godzin od chwili zatrzymania przez uprawniony organ nie zostanie on przekazany do dyspozycji sądu wraz z wnioskiem o zastosowanie tymczasowego aresztowania,
+b) w ciągu 24 godzin od przekazania go do dyspozycji sądu nie doręczono mu postanowienia o zastosowaniu wobec niego tymczasowego aresztowania albo nie ogłoszono mu tego postanowienia na posiedzeniu,
+c) obie odpowiedzi są prawidłowe;
+X001
+2. Jeżeli zachowanie osoby zatrzymanej wskazuje na to, że jest ona pod wpływem alkoholu lub innego podobnie działającego środka albo z innych powodów ma zakłóconą świadomość:
+a) osobę taką odsyła się do izby wytrzeźwień,
+b) osobę taką poddaje się niezwłocznie badaniu lekarskiemu,
+c) sytuacja ta nie jest unormowana przez kpk;
+X010
+3. Zatrzymanego należy zwolnić jeżeli:
+a) lekarz nie wyrazi zgody na zatrzymanie lub osadzenie w pomieszczeniach dla osób zatrzymanych,
+b) ustanie przyczyna zatrzymania a także na polecenie sądu lub prokuratora,
+c) obie odpowiedzi są prawidłowe;
+X001
+4. Zatrzymanemu przysługuje prawo do wniesienia, w terminie:
+a) 7 dni od dnia zatrzymania, zażalenia na zatrzymanie do sądu rejonowego właściwego ze względu na miejsce zatrzymania lub prowadzenia postępowania,
+b) 14 dni od dnia zatrzymania, zażalenia na sposób przeprowadzenia zatrzymania do prokuratora właściwego ze względu na miejsce zatrzymania,
+c) obie odpowiedzi są prawidłowe;
+X100
+5. Funkcjonariusz dokonujący zatrzymania nie jest zobowiązany do:
+a) sprawdzenia czy osoba zatrzymana posiada przy sobie broń, inne niebezpieczne przedmioty oraz ich odebrania,
+b) ustalenia tożsamości osoby zatrzymanej,
+c) przesłuchania osoby zatrzymanej na okoliczność zatrzymania
+X001`
+};
+
+})();
