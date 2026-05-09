@@ -1893,7 +1893,7 @@ function openMockExamSetup() {
 // ── Mock exam seen-questions helpers (per kategoria) ─────
 // Każda kategoria ma własną pulę "widzianych" pytań i resetuje się niezależnie.
 // Dzięki temu mała kategoria (np. System prawa) nie blokuje rotacji w innych.
-function _catSeenKey(catId) { return `zktest_mock_seen_${catId}_v2`; }
+function _catSeenKey(catId) { return `zktest_mock_seen_${catId}_v3`; }
 function loadCatSeen(catId) {
     try { return new Set(JSON.parse(localStorage.getItem(_catSeenKey(catId))) || []); } catch (_) { return new Set(); }
 }
@@ -1909,7 +1909,17 @@ function clearAllSeen() {
     try { localStorage.removeItem(STORAGE.MOCK_SEEN); } catch (_) {}
 }
 function questionKey(q) {
-    return (q.questionText || '').trim().slice(0, 120);
+    // Znormalizowany klucz — odporny na różnice w HTML, kodowaniu i diakrytykach.
+    // Używany do seen-tracking (localStorage) i globalnego dedupowania egzaminu.
+    return (q.questionText || '')
+        .replace(/<br\s*\/?>/gi, ' ')   // zamień <br> na spację
+        .replace(/<[^>]+>/g, '')         // usuń pozostałe tagi HTML
+        .toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g, '')  // usuń diakrytyki
+        .replace(/[^a-z0-9 ]/g, ' ')    // usuń interpunkcję
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 150);
 }
 
 // ── Content-based question classifier ────────────────────
@@ -2035,16 +2045,11 @@ function classifyQuestion(q) {
     return best[1] > 0 ? best[0] : null;
 }
 
-// Normalise question text for similarity comparison:
-// lowercase, strip diacritics, remove punctuation, collapse spaces, take first 80 chars
+// Normalise question text for within-exam deduplication.
+// Identyczna logika co questionKey — gwarantuje że to samo pytanie
+// zawsze dostaje ten sam odcisk, niezależnie od folderu źródłowego.
 function questionNorm(q) {
-    return (q.questionText || '')
-        .toLowerCase()
-        .normalize('NFD').replace(/[̀-ͯ]/g, '')  // strip diacritics
-        .replace(/[^a-z0-9 ]/g, ' ')                       // remove punctuation
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 80);
+    return questionKey(q);  // reuse — jeden spójny odcisk w całej aplikacji
 }
 
 function startMockExam() {
@@ -2088,7 +2093,17 @@ function startMockExam() {
         toast('Niektóre kategorie zostały zresetowane — losujesz od nowa!');
     }
 
-    if (deck.length === 0) {
+    // 5. Globalny dedup całego decku — usuwa duplikaty które przeszły przez różne kategorie
+    //    (to samo pytanie może istnieć w wielu folderach jednocześnie)
+    const globalNorms = new Set();
+    const dedupedDeck = deck.filter(q => {
+        const n = questionNorm(q);
+        if (globalNorms.has(n)) return false;
+        globalNorms.add(n);
+        return true;
+    });
+
+    if (dedupedDeck.length === 0) {
         showError('Brak pytań w bazie do utworzenia egzaminu próbnego.');
         navigate('tests');
         return;
@@ -2096,8 +2111,8 @@ function startMockExam() {
 
     clearMockSession();
     state.mock.active = true;
-    state.mock.questions = deck;
-    state.mock.answers = deck.map(() => []);
+    state.mock.questions = dedupedDeck;
+    state.mock.answers = dedupedDeck.map(() => []);
     state.mock.index = 0;
     state.mock.startedAt = Date.now();
     state.mock.endsAt = state.mock.startedAt + MOCK_EXAM_MINUTES * 60 * 1000;
