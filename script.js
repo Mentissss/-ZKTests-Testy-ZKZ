@@ -100,41 +100,47 @@ const STORAGE = {
 };
 
 // ── Mock exam categories ─────────────────────────────────
+// folderIds: foldery używane w statystykach heatmapy
 const EXAM_CATEGORIES = [
-    {
-        id: 'system_prawa',
-        label: 'System prawa',
-        count: 8,
-        folderIds: ['Cywilne']          // 'Różne' przeniesione do MIXED_FOLDERS
-    },
-    {
-        id: 'prawo_celne',
-        label: 'Prawo celne',
-        count: 16,
-        folderIds: ['Celne', 'Celne_2', 'Celne_3', 'sp_procedury', 'sp_pochodzenie', 'sp_taryfa', 'sp_wartosc']
-    },
-    {
-        id: 'podatki',
-        label: 'Podatki',
-        count: 12,
-        folderIds: ['Podatki', 'Akcyza']
-    },
-    {
-        id: 'prawo_karne',
-        label: 'Prawo karne',
-        count: 12,
-        folderIds: ['Karne', 'sp_kks']
-    },
-    {
-        id: 'kontrola',
-        label: 'Kontrola',
-        count: 12,
-        folderIds: ['Kontrola']
-    }
+    { id: 'system_prawa', label: 'System prawa',  count: 8,
+      folderIds: [] },  // brak dedykowanego folderu — pytania ze wszystkich zestawów mieszanych
+    { id: 'prawo_celne',  label: 'Prawo celne',   count: 16,
+      folderIds: ['Celne','Celne_2','Celne_3','Procedury_celne','Procedury','Pochodzenie','Nomenklatura','Wartosc_celna'] },
+    { id: 'podatki',      label: 'Podatki',        count: 12,
+      folderIds: ['Podatki','Akcyza'] },
+    { id: 'prawo_karne',  label: 'Prawo karne',    count: 12,
+      folderIds: ['Karne','Testy_KKS','Test_KKS','KKS'] },
+    { id: 'kontrola',     label: 'Kontrola',       count: 12,
+      folderIds: ['Kontrola'] }
 ];
 
-// Foldery z mieszaną tematyką — każde pytanie klasyfikowane na podstawie treści
-const MIXED_FOLDERS = ['Różne'];
+// ── Folder → kategoria (bezpośrednie przypisanie) ─────────
+// Pytania z tych folderów trafiają do kategorii BEZ klasyfikatora.
+// Foldery niewymieniione tutaj (Test_1–5, Różne, Cywilne) → klasyfikator.
+const FOLDER_CATEGORY_MAP = {
+    // Prawo celne
+    'Celne':             'prawo_celne',
+    'Celne_2':           'prawo_celne',
+    'Celne_3':           'prawo_celne',
+    'Procedury_celne':   'prawo_celne',
+    'Procedury':         'prawo_celne',
+    'Pochodzenie':       'prawo_celne',
+    'Nomenklatura':      'prawo_celne',
+    'Wartosc_celna':     'prawo_celne',
+    // Podatki
+    'Podatki':           'podatki',
+    'Akcyza':            'podatki',
+    // Prawo karne
+    'Karne':             'prawo_karne',
+    'Testy_KKS':         'prawo_karne',
+    'Test_KKS':          'prawo_karne',
+    'KKS':               'prawo_karne',
+    // Kontrola
+    'Kontrola':          'kontrola',
+    // Cywilne: folder błędnie nazwany — zawiera pytania celne/podatkowe/karne
+    // → brak wpisu → klasyfikator runtime (prawidłowo je rozdzieli)
+    // Test_1–5, Różne, Cywilne → brak wpisu → klasyfikator runtime
+};
 
 const MOCK_EXAM_MINUTES = 60;
 
@@ -1745,28 +1751,51 @@ function startErrorQuiz(mode) {
 /* ──────────────────────────────────────────────────────────
    MOCK EXAM
    ────────────────────────────────────────────────────────── */
-function buildCategoryPool(category) {
-    // Returns array of all parsed questions from folders matching this category.
-    const qs = [];
-    category.folderIds.forEach(fid => {
-        const folder = state.folders.find(f => f.id === fid);
-        if (!folder) return;
+// (buildAndCacheTagsIfNeeded usunięty — getTaggedPool używa folder-first + classifyQuestion,
+//  _taggedPoolCache zapewnia cache w obrębie sesji; localStorage nie jest potrzebny)
+
+// ── Folder-based question pool ────────────────────────────
+// Podejście folder-first:
+//   1. Jeśli folder ma wpis w FOLDER_CATEGORY_MAP → wszystkie jego pytania trafiają
+//      do tej kategorii bezpośrednio (bez analizy treści).
+//   2. Foldery bez wpisu (Test_1–5, Różne, Cywilne) → classifyQuestion().
+// Pula jest budowana raz i cache'owana przez całą sesję.
+let _taggedPoolCache = null;
+
+function getTaggedPool() {
+    if (_taggedPoolCache) return _taggedPoolCache;
+
+    _taggedPoolCache = {};
+    EXAM_CATEGORIES.forEach(cat => { _taggedPoolCache[cat.id] = []; });
+
+    state.folders.forEach(folder => {
         try {
-            const parsed = loadQuestions(folder);
-            parsed.forEach(q => {
-                qs.push({
-                    questionText: q.questionText,
-                    options: q.options,
-                    correctIndexes: q.correctIndexes,
-                    sourceFolderId: folder.id,
-                    sourceFolderTitle: folder.title,
-                    categoryId: category.id,
-                    categoryLabel: category.label
-                });
+            const qs = loadQuestions(folder);
+            const dedicatedCat = FOLDER_CATEGORY_MAP[folder.id] || null;
+
+            qs.forEach(q => {
+                // Folder-first: dedykowane przypisanie bez klasyfikatora
+                const catId = dedicatedCat || classifyQuestion(q);
+                if (catId && _taggedPoolCache[catId]) {
+                    _taggedPoolCache[catId].push({
+                        questionText:      q.questionText,
+                        options:           q.options,
+                        correctIndexes:    q.correctIndexes,
+                        sourceFolderId:    folder.id,
+                        sourceFolderTitle: folder.title,
+                        categoryId:        catId,
+                        categoryLabel:     (EXAM_CATEGORIES.find(c => c.id === catId) || {}).label || catId
+                    });
+                }
             });
         } catch (_) {}
     });
-    return qs;
+
+    return _taggedPoolCache;
+}
+
+function buildCategoryPool(category) {
+    return getTaggedPool()[category.id] || [];
 }
 
 // ── Mock session persistence ────────────────────────────
@@ -1876,47 +1905,123 @@ function questionKey(q) {
 }
 
 // ── Content-based question classifier ────────────────────
-// Klasyfikuje pytanie do kategorii na podstawie słów kluczowych w treści.
-// Zwraca categoryId lub null gdy pytanie niejednoznaczne.
+// Opracowany na podstawie skryptów ZKZ 2025/2026:
+//   prawo celne v.4 · system prawa V2 · prawo karne 2026 · kontrola v.20260401 · prawo podatkowe 2026
+// Zwraca categoryId lub null gdy pytanie nie pasuje do żadnej kategorii.
 function classifyQuestion(q) {
-    // Normalizacja: małe litery, bez diakrytyków
     const t = (q.questionText || '').toLowerCase()
         .normalize('NFD').replace(/[̀-ͯ]/g, '');
 
     const scores = { podatki: 0, prawo_celne: 0, prawo_karne: 0, kontrola: 0, system_prawa: 0 };
 
-    // ── KONTROLA (sprawdź PRZED prawo_celne — "celno-skarbowy" to kontrola, nie prawo celne)
-    if (/urz[ae]d celno.?skarbow|naczelnik.*celno.?skarbow|celno.?skarbow/.test(t)) scores.kontrola += 4;
-    if (/\bnucs\b/.test(t)) scores.kontrola += 3;
-    if (/szef.*krajowej administracji|szef kas\b/.test(t)) scores.kontrola += 3;
-    if (/dyrektor izby administracji skarbow/.test(t)) scores.kontrola += 3;
-    if (/\bkas\b/.test(t)) scores.kontrola += 2;
-    if (/kontrola celna|kontrola celno|rewizja celna|czynnosci sprawdzaj/.test(t)) scores.kontrola += 2;
+    // ══ KONTROLA ══════════════════════════════════════════════════════
+    // "celno-skarbowy" to zawsze kontrola/KAS, nigdy samo prawo celne
+    if (/celno.?skarbow/.test(t))                                       scores.kontrola += 5;
+    if (/\bnucs\b/.test(t))                                             scores.kontrola += 4;
+    if (/szef.*krajowej administracji skarbow|szef\s+kas\b/.test(t))   scores.kontrola += 4;
+    if (/dyrektor izby administracji skarbow/.test(t))                  scores.kontrola += 4;
+    if (/organy\s+kas\b|organ\s+kas\b/.test(t))                        scores.kontrola += 4;
+    if (/kontrola celno|kontrola podatkow|czynnosci sprawdzajac/.test(t)) scores.kontrola += 4;
+    if (/monitoring.*przewoz|monitoring.*towar|\bsent\b/.test(t))       scores.kontrola += 4;
+    if (/\bintrastat\b|\bextrastat\b/.test(t))                          scores.kontrola += 4;
+    if (/\bkas\b/.test(t))                                              scores.kontrola += 1; // słaby sygnał sam w sobie
+    if (/audyt\b|wynik kontroli|protokol kontroli/.test(t))            scores.kontrola += 3;
+    // Tematy kontroli granicznej (z folderów Test_1-5):
+    if (/\bcites\b|okazy.*cites|konwencja.*cites/.test(t))             scores.kontrola += 5;
+    if (/bron.*i.*amunicj|amunicj.*bron|pozwolenie.*bron|wywoz.*broni|przywoz.*broni/.test(t)) scores.kontrola += 4;
+    if (/ustawa.*o.*broni|bron.*palna|bron.*pozbawion/.test(t))        scores.kontrola += 4;
+    if (/wywoz.*zabytk|przywoz.*zabytk|pozwolenie.*wywoz.*zabytk|dobra kultury/.test(t)) scores.kontrola += 5;
+    if (/towary.*podwojnego.*zastosowania|produkty.*podwojnego.*zastosowania|uzbrojenie.*wywoz/.test(t)) scores.kontrola += 5;
+    if (/towary.*o.*znaczeniu.*strategicznym|znaczeniu.*strategicznym/.test(t)) scores.kontrola += 5;
+    if (/organ celny.*ujawni|ujawni.*towar.*podrabian|towar.*piracki/.test(t)) scores.kontrola += 4;
+    if (/zezwolenie.*wywoz|zezwolenie.*przywoz/.test(t) && !/cites/.test(t))  scores.kontrola += 3;
 
-    // ── PODATKI
-    if (/ordynacja podatkow|zobowiazanie podatkow|obowiazek podatkow/.test(t)) scores.podatki += 4;
-    if (/zaleglosc podatkow|nadplata|inkasent|platnik/.test(t)) scores.podatki += 3;
-    if (/\bpodatek\b|\bpodatku\b|\bpodatnik[ao]?\b|\bpodatnikiem\b/.test(t)) scores.podatki += 2;
-    if (/\bvat\b|\bakcyz|\bpit\b|\bcit\b/.test(t)) scores.podatki += 2;
-    if (/stawka podatkow|ulga podatkow|interpretacja.*podatkow/.test(t)) scores.podatki += 2;
+    // ══ PODATKI ═══════════════════════════════════════════════════════
+    if (/ordynacja podatkow/.test(t))                                   scores.podatki += 5;
+    if (/zobowiazanie podatkow|obowiazek podatkow/.test(t))             scores.podatki += 5;
+    if (/zaleglosc podatkow|nadplata|odsetki za zwloke/.test(t))        scores.podatki += 5;
+    if (/\bplatnik\b|\binkasent\b/.test(t))                             scores.podatki += 4;
+    if (/interpretacja.*prawa podatkow|interpretacja.*podatkow/.test(t)) scores.podatki += 5;
+    if (/\bpit\b|\bcit\b|rok podatkowy|przychod.*dzialalnosc/.test(t)) scores.podatki += 5;
+    if (/\bvat\b|podatek od towarow i uslug/.test(t))                  scores.podatki += 4;
+    if (/wyroby akcyzowe|znaki akcyzy|podatek akcyzow|procedura zawieszenia akcyz/.test(t)) scores.podatki += 5;
+    if (/\bakcyz/.test(t))                                              scores.podatki += 3;
+    if (/\bpodatek\b|\bpodatku\b|\bpodatnik|\bpodatnicy\b/.test(t))   scores.podatki += 2;
+    if (/organ podatkow|wlasciwosc.*organ.*podatk/.test(t) && !/celno.?skarbow/.test(t)) scores.podatki += 3;
+    if (/urzad skarbow/.test(t) && !/celno.?skarbow/.test(t))          scores.podatki += 3;
+    if (/ulga podatkow|zwolnienie.*podatkow|stawka.*podatku/.test(t))  scores.podatki += 3;
+    if (/podstawow.*funkcj.*podatk|definicja podatku/.test(t))         scores.podatki += 4;
 
-    // ── PRAWO CELNE
-    if (/prawo celne|procedura celna|zgloszenie celne|sklad celny|dlug celny/.test(t)) scores.prawo_celne += 4;
-    if (/wartosc celna|taryfa celna|klasyfikacja taryfow|nomenklatura|orins/.test(t)) scores.prawo_celne += 4;
-    if (/\bwit\b|\btaric\b|\bisztar\b|\bincoterms\b|\bukc\b/.test(t)) scores.prawo_celne += 4;
-    if (/unijny kodeks celny|eur[.-]1|eur.?med|swiadectwo.*atr|\batr\b/.test(t)) scores.prawo_celne += 3;
-    if (/\bclo\b|\bclowa\b|\bclem\b|\bcelny\b|\bcelna\b|\bcelne\b/.test(t)) scores.prawo_celne += 1;
+    // ══ PRAWO CELNE ════════════════════════════════════════════════════
+    if (/zgloszenie celne|deklaracja skrocona/.test(t))                 scores.prawo_celne += 5;
+    if (/dlug celny|dluznik celny|gwarant celny/.test(t))               scores.prawo_celne += 5;
+    if (/wartosc celna|wartosc transakcyjna/.test(t))                   scores.prawo_celne += 5;
+    if (/procedura celna(?!.*skarbow)|procedury celne/.test(t))         scores.prawo_celne += 5;
+    if (/sklad celny|skladowanie celne|wolny obszar celny/.test(t))     scores.prawo_celne += 5;
+    if (/dopuszczenie do obrotu|status celny|towar unijny|towar nieunijny/.test(t)) scores.prawo_celne += 5;
+    if (/\bwit\b|\bwip\b|\bwiw\b/.test(t))                             scores.prawo_celne += 5; // WIT/WIP/WIW
+    if (/\btaric\b|\bisztar\b|\borins\b/.test(t))                      scores.prawo_celne += 5;
+    if (/nomenklatura.*taryfow|taryfow.*nomenklatur|klasyfikacja taryfow/.test(t)) scores.prawo_celne += 5;
+    if (/unijny kodeks celny|\bukc\b/.test(t))                          scores.prawo_celne += 5;
+    if (/karnet tir|karnet ata|\bdpdz\b|\baeo\b/.test(t))              scores.prawo_celne += 5;
+    if (/mienie przesiedlenia|zwolnienie od naleznosci celnych/.test(t)) scores.prawo_celne += 5;
+    if (/uszlachetnianie czynne|uszlachetnianie bierne|odprawy czasowe|przetwarzanie pod kontrola celna/.test(t)) scores.prawo_celne += 5;
+    if (/incoterms|wartosc transakcyjna|kurs walut.*celn/.test(t))      scores.prawo_celne += 4;
+    if (/dozor celny/.test(t))                                          scores.prawo_celne += 4;
+    if (/zabezpieczenie.*celne|celne.*zabezpieczenie/.test(t))          scores.prawo_celne += 4;
+    if (/eur[.-]?1\b|eur.?med|\brex\b|swiadectwo.*atr|\batr\b/.test(t)) scores.prawo_celne += 4;
+    if (/naleznosci celne/.test(t))                                     scores.prawo_celne += 3;
+    if (/tranzyt(?!.*drogowy)/.test(t))                                 scores.prawo_celne += 3; // tranzyt celny (nie monitoring drogowy)
+    if (/\bclo\b|\bclom\b|\bclem\b|\bcelny\b|\bcelna\b|\bcelne\b/.test(t) && !/celno.?skarbow/.test(t)) scores.prawo_celne += 1;
 
-    // ── PRAWO KARNE
-    if (/\bkks\b|kodeks karny skarbow|przestepstwo skarbow|wykroczenie skarbow/.test(t)) scores.prawo_karne += 4;
-    if (/postepowanie karne|podejrzany|oskarzony|prokurator|tymczasowe aresztowanie/.test(t)) scores.prawo_karne += 3;
-    if (/kara grzywny|mandat karny|wniosek o ukaranie|stawka dzienna/.test(t)) scores.prawo_karne += 3;
+    // ══ PRAWO KARNE (KKS + KPK) ════════════════════════════════════════
+    if (/\bkks\b|kodeks karny skarbow/.test(t))                         scores.prawo_karne += 5;
+    if (/przestepstwo skarbow|wykroczenie skarbow/.test(t))             scores.prawo_karne += 5;
+    if (/mandat karny|postepowanie mandatowe/.test(t))                  scores.prawo_karne += 5;
+    if (/czynny zal|dobrowolne poddanie sie/.test(t))                   scores.prawo_karne += 5;
+    if (/uszczuplenie nalez/.test(t))                                   scores.prawo_karne += 4;
+    if (/kara grzywny|stawka dzienna/.test(t))                          scores.prawo_karne += 4;
+    if (/postepowanie przygotowawcze|postepowanie karne/.test(t))       scores.prawo_karne += 4;
+    if (/\bpodejrzany\b|\boskarzony\b|\bpokrzywdzony\b/.test(t))        scores.prawo_karne += 4;
+    if (/\bprokurator\b|nadzor.*prokurator/.test(t))                    scores.prawo_karne += 4;
+    if (/tymczasowe aresztowanie/.test(t))                              scores.prawo_karne += 4;
+    if (/art\.?\s*308\s*k\.?p\.?k/.test(t))                            scores.prawo_karne += 5;
+    if (/wniosek o sciganie|wniosek o ukaranie/.test(t))                scores.prawo_karne += 4;
+    if (/znaczna wartosc|wielka wartosc/.test(t))                       scores.prawo_karne += 4;
+    if (/znak towarowy podrobion|prawo wlasnosci przemyslowej/.test(t)) scores.prawo_karne += 4;
+    if (/finansowy organ.*postepow|organ.*przygotowawczego/.test(t))    scores.prawo_karne += 4;
+    if (/kara pozbawienia wolnosci|kara ograniczenia wolnosci/.test(t)) scores.prawo_karne += 4;
+    if (/\bpatent\b|urzad patentow|wynalazek|wzor uzytkowy/.test(t))   scores.prawo_karne += 3;
+    if (/\bprawo wlasnosci intelektualnej\b/.test(t))                  scores.prawo_karne += 4;
+    if (/naruszeni.*praw.*wlasnosci|ochrona.*znaku|znak.*towarowy/.test(t)) scores.prawo_karne += 3;
 
-    // ── SYSTEM PRAWA
-    if (/\bdyrektywa\b|prawo wspolnotow|prymat prawa|zasada pierwszenstwa/.test(t)) scores.system_prawa += 4;
-    if (/rozporzadzenie.*unijn|unijn.*rozporzadzenie|prawo unijne|traktat.*ue\b/.test(t)) scores.system_prawa += 3;
-    if (/\bkpa\b|kodeks cywilny|postepowanie administracyjne|zrodla prawa/.test(t)) scores.system_prawa += 3;
-    if (/konstytucja/.test(t)) scores.system_prawa += 2;
+    // ══ SYSTEM PRAWA ═══════════════════════════════════════════════════
+    if (/\bdyrektywa\b/.test(t))                                        scores.system_prawa += 5;
+    if (/akt prawa wspolnotowego|prawo wspolnotow|prawo unijne/.test(t)) scores.system_prawa += 5;
+    if (/prymat prawa|zasada pierwszenstwa prawa/.test(t))              scores.system_prawa += 5;
+    if (/zasada bezposredniego skutku/.test(t))                         scores.system_prawa += 5;
+    if (/dziennik urzedowy.*uni|dziennik urzedowy.*ue/.test(t))        scores.system_prawa += 5;
+    if (/zrodla prawa|hierarchia.*prawna|hierarchia.*zrodel/.test(t))  scores.system_prawa += 5;
+    if (/trybunal sprawiedliwosci.*ue|\btsue\b/.test(t))               scores.system_prawa += 5;
+    if (/rozporzadzenie.*unijn|unijn.*rozporzadzenie|akt.*wspolnotow/.test(t)) scores.system_prawa += 4;
+    if (/traktat.*ue\b|traktat.*unijny|traktat.*wspolnot/.test(t))     scores.system_prawa += 4;
+    if (/\bkpa\b|kodeks postepowania administracyjnego/.test(t))        scores.system_prawa += 4;
+    if (/\bkonstytucja\b/.test(t))                                      scores.system_prawa += 3;
+    if (/prawo pierwotne|prawo wtorne/.test(t))                         scores.system_prawa += 4;
+    // Prawo cywilne i gospodarcze (ze skryptu System prawa)
+    if (/spolka jawna|spolka partnerska|spolka komandytow|spolka akcyjna|prosta spolka/.test(t)) scores.system_prawa += 5;
+    if (/\bkrs\b|krajowy rejestr sadowy|rejestr przedsiebiorcow/.test(t)) scores.system_prawa += 4;
+    if (/\bceidg\b|ewidencja dzialalnosci gospodarcz/.test(t))          scores.system_prawa += 5;
+    if (/zdolnosc prawna|zdolnosc do czynnosci prawnych/.test(t))       scores.system_prawa += 5;
+    if (/\bpelnomocnictwo\b|\bpelnomocnik\b|\bprokura\b/.test(t))       scores.system_prawa += 4;
+    if (/osoba fizyczna|osoba prawna|osobowosc prawna/.test(t))         scores.system_prawa += 3;
+    if (/komplementariusz|komandytariusz|akcjonariusz/.test(t))         scores.system_prawa += 5;
+    if (/spolka cywilna|wspolnicy spolki|umowa spolki/.test(t))         scores.system_prawa += 4;
+    if (/kapital zakladowy|kapital akcyjny/.test(t))                    scores.system_prawa += 4;
+    if (/norma prawna|budowa normy|hipoteza.*dyspozycja|sankcja.*normy/.test(t)) scores.system_prawa += 5;
+    if (/galaz prawa|prawo cywilne|prawo gospodarcze|prawo handlowe/.test(t)) scores.system_prawa += 3;
+    if (/acquis communautaire|dorobek prawny.*ue/.test(t))              scores.system_prawa += 5;
+    if (/postepowanie restrukturyzacyjne|upadlosc.*spolki|likwidacja spolki/.test(t)) scores.system_prawa += 4;
 
     const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
     return best[1] > 0 ? best[0] : null;
@@ -1939,27 +2044,9 @@ function startMockExam() {
     const deck = [];
     let anyFresh = false;
 
-    // ── Zbuduj pule dodatkowe z folderów mieszanych (klasyfikacja per pytanie)
-    const mixedByCategory = {};
-    EXAM_CATEGORIES.forEach(c => { mixedByCategory[c.id] = []; });
-
-    MIXED_FOLDERS.forEach(folderId => {
-        const folder = state.folders.find(f => f.id === folderId);
-        if (!folder) return;
-        try {
-            loadQuestions(folder).forEach(q => {
-                const catId = classifyQuestion(q);
-                if (catId && mixedByCategory[catId]) {
-                    mixedByCategory[catId].push(q);
-                }
-                // pytania nierozpoznane (catId === null) są pomijane
-            });
-        } catch (_) {}
-    });
-
     EXAM_CATEGORIES.forEach(cat => {
-        // 1. Build full pool for this category (primary folders + classified mixed)
-        const rawPool = shuffleArray([...buildCategoryPool(cat), ...mixedByCategory[cat.id]]);
+        // 1. Pula pytań otagowanych do tej kategorii (ze wszystkich folderów)
+        const rawPool = shuffleArray(buildCategoryPool(cat));
 
         // 2. Deduplicate WITHIN category by normalised question text
         //    (removes near-identical variants that appear across multiple folders)
