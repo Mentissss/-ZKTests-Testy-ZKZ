@@ -1890,14 +1890,22 @@ function openMockExamSetup() {
     navigate('mock-setup');
 }
 
-// ── Mock exam seen-questions helpers ─────────────────────
-function loadMockSeen() {
-    try { return new Set(JSON.parse(localStorage.getItem(STORAGE.MOCK_SEEN)) || []); } catch (_) { return new Set(); }
+// ── Mock exam seen-questions helpers (per kategoria) ─────
+// Każda kategoria ma własną pulę "widzianych" pytań i resetuje się niezależnie.
+// Dzięki temu mała kategoria (np. System prawa) nie blokuje rotacji w innych.
+function _catSeenKey(catId) { return `zktest_mock_seen_${catId}_v2`; }
+function loadCatSeen(catId) {
+    try { return new Set(JSON.parse(localStorage.getItem(_catSeenKey(catId))) || []); } catch (_) { return new Set(); }
 }
-function saveMockSeen(seenSet) {
-    try { localStorage.setItem(STORAGE.MOCK_SEEN, JSON.stringify([...seenSet])); } catch (_) {}
+function saveCatSeen(catId, seenSet) {
+    try { localStorage.setItem(_catSeenKey(catId), JSON.stringify([...seenSet])); } catch (_) {}
 }
-function clearMockSeen() {
+function clearCatSeen(catId) {
+    try { localStorage.removeItem(_catSeenKey(catId)); } catch (_) {}
+}
+function clearAllSeen() {
+    EXAM_CATEGORIES.forEach(cat => clearCatSeen(cat.id));
+    // usuń też stary globalny klucz jeśli istnieje
     try { localStorage.removeItem(STORAGE.MOCK_SEEN); } catch (_) {}
 }
 function questionKey(q) {
@@ -2040,16 +2048,14 @@ function questionNorm(q) {
 }
 
 function startMockExam() {
-    const seen = loadMockSeen();
     const deck = [];
-    let anyFresh = false;
+    let totalReset = 0;
 
     EXAM_CATEGORIES.forEach(cat => {
-        // 1. Pula pytań otagowanych do tej kategorii (ze wszystkich folderów)
+        // 1. Pula pytań dla tej kategorii
         const rawPool = shuffleArray(buildCategoryPool(cat));
 
         // 2. Deduplicate WITHIN category by normalised question text
-        //    (removes near-identical variants that appear across multiple folders)
         const catNorms = new Set();
         const deduped = rawPool.filter(q => {
             const n = questionNorm(q);
@@ -2058,22 +2064,28 @@ function startMockExam() {
             return true;
         });
 
-        // 3. Prefer unseen questions; backfill with already-seen if pool runs short
-        const fresh = deduped.filter(q => !seen.has(questionKey(q)));
-        const old   = deduped.filter(q =>  seen.has(questionKey(q)));
-        anyFresh = anyFresh || fresh.length > 0;
+        // 3. Wczytaj seen dla tej konkretnej kategorii
+        let catSeen = loadCatSeen(cat.id);
+        let fresh = deduped.filter(q => !catSeen.has(questionKey(q)));
 
-        // Ordered list: unseen first, then seen — guarantees we always reach cat.count
+        // Jeśli tej kategorii skończyły się świeże pytania → reset tylko tej kategorii
+        if (fresh.length < cat.count && deduped.length >= cat.count) {
+            clearCatSeen(cat.id);
+            catSeen = new Set();
+            fresh = deduped;
+            totalReset++;
+        }
+
+        // Unseen first, then seen as backfill if pool is tiny
+        const old     = deduped.filter(q => catSeen.has(questionKey(q)));
         const ordered = [...fresh, ...old];
 
-        // 4. Take exactly cat.count (or all available if fewer exist)
+        // 4. Weź dokładnie cat.count (lub tyle ile jest)
         deck.push(...ordered.slice(0, cat.count));
     });
 
-    // If no fresh questions remain at all, reset seen pool so next exam starts fresh again
-    if (!anyFresh) {
-        clearMockSeen();
-        toast('Przerobiłeś już wszystkie pytania — pula została zresetowana!');
+    if (totalReset > 0) {
+        toast('Niektóre kategorie zostały zresetowane — losujesz od nowa!');
     }
 
     if (deck.length === 0) {
@@ -2246,10 +2258,14 @@ function mockSubmit(forced) {
     });
 
     state.mock.finishedSummary = { score, total, perCat, breakdown };
-    // Persist seen questions so they don't repeat in future exams
-    const seenNow = loadMockSeen();
-    state.mock.questions.forEach(q => seenNow.add(questionKey(q)));
-    saveMockSeen(seenNow);
+    // Persist seen questions per kategoria — każda kategoria rotuje niezależnie
+    EXAM_CATEGORIES.forEach(cat => {
+        const catSeen = loadCatSeen(cat.id);
+        state.mock.questions
+            .filter(q => q.categoryId === cat.id)
+            .forEach(q => catSeen.add(questionKey(q)));
+        saveCatSeen(cat.id, catSeen);
+    });
     clearMockSession();
     renderMockResult();
     navigate('mock-end');
