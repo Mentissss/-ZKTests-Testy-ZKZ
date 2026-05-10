@@ -2123,11 +2123,19 @@ function questionNorm(q) {
 let _pendingProtectedKey = null;
 
 function xorDecrypt(b64, password) {
-    const raw = atob(b64);
-    const key = password;
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i) ^ key.charCodeAt(i % key.length);
-    return new TextDecoder().decode(bytes);
+    // Decode base64 → raw bytes
+    const binaryStr = atob(b64);
+    const len = binaryStr.length;
+    const encBytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) encBytes[i] = binaryStr.charCodeAt(i) & 0xff;
+    // Key bytes via TextEncoder – matches Python's password.encode('utf-8') exactly
+    const keyBytes = new TextEncoder().encode(password);
+    const keyLen = keyBytes.length;
+    // XOR decrypt
+    const outBytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) outBytes[i] = encBytes[i] ^ keyBytes[i % keyLen];
+    // Decode UTF-8 (explicit encoding for cross-browser safety)
+    return new TextDecoder('utf-8').decode(outBytes);
 }
 
 function parseProtectedQuestions(plaintext) {
