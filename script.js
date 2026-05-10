@@ -74,6 +74,16 @@ const state = {
         revealed: false
     },
 
+    // QA Flashcards (Ustne / Opisowe / Testowe)
+    qafc: {
+        deck: [],
+        index: 0,
+        known: 0,
+        total: 0,
+        flipped: false,
+        current: null
+    },
+
     // Dialog mode
     dialog: {
         scriptId: null,
@@ -429,7 +439,7 @@ function bindGlobalControls() {
         const navBtn = e.target.closest('[data-view]');
         if (navBtn) {
             const view = navBtn.dataset.view;
-            if (['home','tests','materials','links'].includes(view)) {
+            if (['home','tests','materials','links','qa-fc'].includes(view)) {
                 e.preventDefault();
                 navigate(view);
                 $('#topnav').classList.remove('is-mobile-open');
@@ -591,12 +601,23 @@ function bindGlobalControls() {
         toast('Statystyki wyczyszczone');
     });
 
+    // QA Flashcards
+    $('#qaFcStartBtn').addEventListener('click', startQAFlashcards);
+    $('#qaFcRestartBtn').addEventListener('click', startQAFlashcards);
+    $('#qaFlashcard').addEventListener('click', flipQAFlashcard);
+    $('#qaFlashcard').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') flipQAFlashcard(); });
+    $('#qaFcYes').addEventListener('click', () => rateQAFlashcard(true));
+    $('#qaFcNo').addEventListener('click', () => rateQAFlashcard(false));
+    $('#qaFcDbSelect').addEventListener('change', startQAFlashcards);
+
     // Oral simulator
     $('#oralRevealBtn').addEventListener('click', oralReveal);
     $('#oralRateYes').addEventListener('click', () => oralRate(true));
     $('#oralRateNo').addEventListener('click', () => oralRate(false));
     $('#oralShuffleBtn').addEventListener('click', () => { startOralSim(); toast('Pula przetasowana'); });
     $('#oralTimerSelect').addEventListener('change', oralReset);
+    $('#oralDbSelect').addEventListener('change', () => { populateOralTopics(); startOralSim(); });
+    $('#oralTopicSelect').addEventListener('change', startOralSim);
     $('#oralResumeBtn').addEventListener('click', resumeOralSession);
     $('#oralDiscardBtn').addEventListener('click', () => {
         if (!confirm('Usunąć zapisaną sesję ustnego?')) return;
@@ -1000,6 +1021,22 @@ function shuffleArray(items) {
         [a[i], a[j]] = [a[j], a[i]];
     }
     return a;
+}
+
+// Zwraca kopię pytania z losowo przemieszanymi odpowiedziami.
+// correctIndexes zostają zaktualizowane do nowych pozycji.
+function shuffleQuestionOptions(q) {
+    const n = q.options.length;
+    // Tworzymy permutację indeksów
+    const perm = shuffleArray([...Array(n).keys()]);
+    const newOptions = perm.map(i => q.options[i]);
+    // correctIndexes muszą wskazywać nowe pozycje tych samych odpowiedzi
+    const oldCorrect = new Set(q.correctIndexes);
+    const newCorrect = [];
+    perm.forEach((oldIdx, newIdx) => {
+        if (oldCorrect.has(oldIdx)) newCorrect.push(newIdx);
+    });
+    return { ...q, options: newOptions, correctIndexes: newCorrect };
 }
 
 // ── Question fingerprinting (stable hash of normalized text) ──
@@ -1915,6 +1952,7 @@ function questionKey(q) {
         .replace(/<br\s*\/?>/gi, ' ')   // zamień <br> na spację
         .replace(/<[^>]+>/g, '')         // usuń pozostałe tagi HTML
         .toLowerCase()
+        .replace(/[łŁ]/g, 'l')          // ł nie rozkłada się przez NFD — obsłuż ręcznie
         .normalize('NFD').replace(/[̀-ͯ]/g, '')  // usuń diakrytyki
         .replace(/[^a-z0-9 ]/g, ' ')    // usuń interpunkcję
         .replace(/\s+/g, ' ')
@@ -1928,6 +1966,7 @@ function questionKey(q) {
 // Zwraca categoryId lub null gdy pytanie nie pasuje do żadnej kategorii.
 function classifyQuestion(q) {
     const t = (q.questionText || '').toLowerCase()
+        .replace(/[łŁ]/g, 'l')          // ł nie rozkłada się przez NFD — obsłuż ręcznie
         .normalize('NFD').replace(/[̀-ͯ]/g, '');
 
     const scores = { podatki: 0, prawo_celne: 0, prawo_karne: 0, kontrola: 0, system_prawa: 0 };
@@ -2014,31 +2053,39 @@ function classifyQuestion(q) {
     if (/naruszeni.*praw.*wlasnosci|ochrona.*znaku|znak.*towarowy/.test(t)) scores.prawo_karne += 3;
 
     // ══ SYSTEM PRAWA ═══════════════════════════════════════════════════
-    if (/\bdyrektywa\b/.test(t))                                        scores.system_prawa += 5;
-    if (/akt prawa wspolnotowego|prawo wspolnotow|prawo unijne/.test(t)) scores.system_prawa += 5;
-    if (/prymat prawa|zasada pierwszenstwa prawa/.test(t))              scores.system_prawa += 5;
-    if (/zasada bezposredniego skutku/.test(t))                         scores.system_prawa += 5;
-    if (/dziennik urzedowy.*uni|dziennik urzedowy.*ue/.test(t))        scores.system_prawa += 5;
-    if (/zrodla prawa|hierarchia.*prawna|hierarchia.*zrodel/.test(t))  scores.system_prawa += 5;
-    if (/trybunal sprawiedliwosci.*ue|\btsue\b/.test(t))               scores.system_prawa += 5;
-    if (/rozporzadzenie.*unijn|unijn.*rozporzadzenie|akt.*wspolnotow/.test(t)) scores.system_prawa += 4;
-    if (/traktat.*ue\b|traktat.*unijny|traktat.*wspolnot/.test(t))     scores.system_prawa += 4;
-    if (/\bkpa\b|kodeks postepowania administracyjnego/.test(t))        scores.system_prawa += 4;
-    if (/\bkonstytucja\b/.test(t))                                      scores.system_prawa += 3;
-    if (/prawo pierwotne|prawo wtorne/.test(t))                         scores.system_prawa += 4;
-    // Prawo cywilne i gospodarcze (ze skryptu System prawa)
+    // -- Prawo UE: dyrektywy, rozporządzenia, zasady, źródła --
+    if (/\bdyrektywa\b|\bdyrektywy\b|\bdyrektywie\b|\bdyrektywen\b/.test(t)) scores.system_prawa += 5;
+    if (/akt.*prawa.*wspolnotow|prawo.*wspolnotow|wspolnotow.*prawa/.test(t)) scores.system_prawa += 5;
+    if (/prawo unijne|prawa unijnego|prawie unijnym/.test(t))           scores.system_prawa += 5;
+    if (/prymat.*prawa|pierwszenstwo.*prawa.*krajow|zasada.*pierwszen.*praw/.test(t)) scores.system_prawa += 5;
+    if (/zasada bezposredniego skutku|bezposrednio stosowane.*panstw/.test(t)) scores.system_prawa += 5;
+    if (/dziennik urzedowy.*uni|dziennik urzedowy.*ue/.test(t))         scores.system_prawa += 5;
+    if (/zrodla prawa|hierarchia.*prawna|hierarchia.*zrodel/.test(t))   scores.system_prawa += 5;
+    if (/trybunal sprawiedliwosci.*ue|\btsue\b/.test(t))                scores.system_prawa += 5;
+    if (/prawo pierwotne|prawo wtorne/.test(t))                         scores.system_prawa += 5;
+    if (/acquis communautaire|dorobek prawny.*ue/.test(t))              scores.system_prawa += 5;
+    if (/traktat.*ue\b|traktat.*unijny|traktat.*wspolnot|traktat lizbon/.test(t)) scores.system_prawa += 5;
+    // wszystkie formy "rozporządzenie/rozporządzeń unijnych/unijne" itp.
+    if (/\brozporz\w*\s+\w*unijn|\bunijn\w*\s+\w*rozporz/.test(t))     scores.system_prawa += 5;
+    if (/\bkonstytucja\b|\bkonstytucji\b|\bkonstytucyjn/.test(t))       scores.system_prawa += 5;
+    // -- KPA: postępowanie administracyjne --
+    if (/\bkpa\b|kodeks postepowania administracyjnego/.test(t))         scores.system_prawa += 5;
+    if (/postepowanie administracyjne/.test(t) && !/podatk/.test(t))     scores.system_prawa += 4;
+    if (/decyzja administracyjna|postanowienie administracyjne/.test(t)) scores.system_prawa += 4;
+    if (/organ.*ii.*instancji|organ.*wyzszego stopnia/.test(t) && !/podatk/.test(t)) scores.system_prawa += 4;
+    if (/wlasciwosc rzeczowa|wlasciwosc instancyjna/.test(t) && !/podatk/.test(t)) scores.system_prawa += 4;
+    // -- Prawo cywilne i gospodarcze --
     if (/spolka jawna|spolka partnerska|spolka komandytow|spolka akcyjna|prosta spolka/.test(t)) scores.system_prawa += 5;
-    if (/\bkrs\b|krajowy rejestr sadowy|rejestr przedsiebiorcow/.test(t)) scores.system_prawa += 4;
-    if (/\bceidg\b|ewidencja dzialalnosci gospodarcz/.test(t))          scores.system_prawa += 5;
-    if (/zdolnosc prawna|zdolnosc do czynnosci prawnych/.test(t))       scores.system_prawa += 5;
-    if (/\bpelnomocnictwo\b|\bpelnomocnik\b|\bprokura\b/.test(t))       scores.system_prawa += 4;
-    if (/osoba fizyczna|osoba prawna|osobowosc prawna/.test(t))         scores.system_prawa += 3;
-    if (/komplementariusz|komandytariusz|akcjonariusz/.test(t))         scores.system_prawa += 5;
-    if (/spolka cywilna|wspolnicy spolki|umowa spolki/.test(t))         scores.system_prawa += 4;
-    if (/kapital zakladowy|kapital akcyjny/.test(t))                    scores.system_prawa += 4;
+    if (/\bkrs\b|krajowy rejestr sadowy|rejestr przedsiebiorcow/.test(t)) scores.system_prawa += 5;
+    if (/\bceidg\b|ewidencja dzialalnosci gospodarcz/.test(t))           scores.system_prawa += 5;
+    if (/zdolnosc prawna|zdolnosc do czynnosci prawnych/.test(t))        scores.system_prawa += 5;
+    if (/\bpelnomocnictwo\b|\bpelnomocnik\b|\bprokura\b/.test(t))        scores.system_prawa += 4;
+    if (/osoba fizyczna|osoba prawna|osobowosc prawna/.test(t))          scores.system_prawa += 3;
+    if (/komplementariusz|komandytariusz|akcjonariusz/.test(t))          scores.system_prawa += 5;
+    if (/spolka cywilna|wspolnicy spolki|umowa spolki/.test(t))          scores.system_prawa += 4;
+    if (/kapital zakladowy|kapital akcyjny/.test(t))                     scores.system_prawa += 4;
     if (/norma prawna|budowa normy|hipoteza.*dyspozycja|sankcja.*normy/.test(t)) scores.system_prawa += 5;
     if (/galaz prawa|prawo cywilne|prawo gospodarcze|prawo handlowe/.test(t)) scores.system_prawa += 3;
-    if (/acquis communautaire|dorobek prawny.*ue/.test(t))              scores.system_prawa += 5;
     if (/postepowanie restrukturyzacyjne|upadlosc.*spolki|likwidacja spolki/.test(t)) scores.system_prawa += 4;
 
     const best = Object.entries(scores).sort((a, b) => b[1] - a[1])[0];
@@ -2111,7 +2158,8 @@ function startMockExam() {
 
     clearMockSession();
     state.mock.active = true;
-    state.mock.questions = dedupedDeck;
+    // Losuj kolejność odpowiedzi w każdym pytaniu
+    state.mock.questions = dedupedDeck.map(shuffleQuestionOptions);
     state.mock.answers = dedupedDeck.map(() => []);
     state.mock.index = 0;
     state.mock.startedAt = Date.now();
@@ -2431,8 +2479,47 @@ function renderHeatmap() {
 /* ──────────────────────────────────────────────────────────
    ORAL SIMULATOR
    ────────────────────────────────────────────────────────── */
+function populateOralTopics() {
+    const db = ($('#oralDbSelect') || {}).value || 'default';
+    let topics = [];
+
+    if (db === 'default') {
+        // For default pool: group by source (material title or 'baza tematów')
+        topics.push('baza tematów');
+        MATERIALS.forEach(m => {
+            if ((loadTrainerData(m.id) || []).length > 0) topics.push(m.title);
+        });
+    } else {
+        const items = db === 'all'
+            ? [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe]
+            : (QA_DATABASES[db] || []);
+        topics = [...new Set(items.map(it => it.topic || it.db))].sort();
+    }
+
+    const sel = $('#oralTopicSelect');
+    const total = db === 'default'
+        ? ORAL_TOPICS.length + MATERIALS.reduce((s,m) => s + (loadTrainerData(m.id)||[]).length, 0)
+        : (db === 'all'
+            ? QA_DATABASES.ustne.length + QA_DATABASES.opisowe.length + QA_DATABASES.testowe.length
+            : (QA_DATABASES[db] || []).length);
+    sel.innerHTML = `<option value="all">Wszystkie tematy (${total})</option>`;
+    topics.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.textContent = t;
+        sel.appendChild(opt);
+    });
+}
+
 function buildOralPool() {
-    // Combine: curated topics + all trainer items across all materials
+    const db = ($('#oralDbSelect') || {}).value || 'default';
+    if (db !== 'default') {
+        const sources = db === 'all'
+            ? [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe]
+            : (QA_DATABASES[db] || []);
+        return sources.map(it => ({ topic: it.q, answer: it.a, source: it.topic || it.db }));
+    }
+    // Original default pool: curated topics + all trainer items
     const pool = [];
     ORAL_TOPICS.forEach(t => {
         pool.push({ topic: t.topic, answer: t.answer, source: 'baza tematów' });
@@ -2471,6 +2558,7 @@ function clearOralSession() {
 
 function openOralSim() {
     navigate('oral-sim');
+    populateOralTopics();
 
     // Resume banner if a saved session has remaining items
     const saved = loadOralSession();
@@ -2508,7 +2596,12 @@ function startOralSim() {
     stopOralTimer();
     clearOralSession();
     $('#oralResumeBanner').classList.add('hidden');
-    const pool = buildOralPool();
+    let pool = buildOralPool();
+    // Apply topic filter
+    const topicSel = ($('#oralTopicSelect') || {}).value || 'all';
+    if (topicSel !== 'all') {
+        pool = pool.filter(it => it.source === topicSel);
+    }
     const empty = pool.length === 0;
     $('#oralEmpty').classList.toggle('hidden', !empty);
     $('#oralBody').classList.toggle('hidden', empty);
@@ -2630,6 +2723,89 @@ function oralReset() {
             $('#oralTimerWrap').style.visibility = 'hidden';
         }
     }
+}
+
+/* ──────────────────────────────────────────────────────────
+   QA FLASHCARDS (Ustne / Opisowe / Testowe zamknięte)
+   ────────────────────────────────────────────────────────── */
+function startQAFlashcards() {
+    const db = $('#qaFcDbSelect').value;
+    let items = [];
+    if (db === 'all') {
+        items = [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe];
+    } else {
+        items = QA_DATABASES[db] || [];
+    }
+
+    state.qafc.deck = shuffleArray([...items]).map(it => ({ it, status: 'pending' }));
+    state.qafc.index = 0;
+    state.qafc.known = 0;
+    state.qafc.total = state.qafc.deck.length;
+    state.qafc.flipped = false;
+    state.qafc.current = null;
+
+    const labels = { ustne: 'Ustne', opisowe: 'Opisowe', testowe: 'Testowe zamknięte', all: 'Wszystkie bazy' };
+    $('#qaFcTitle').textContent = labels[db] || 'Fiszki baz';
+    $('#qaFcBody').classList.remove('hidden');
+
+    nextQAFlashcard();
+}
+
+function nextQAFlashcard() {
+    state.qafc.flipped = false;
+    $('#qaFlashcard').classList.remove('is-flipped');
+    $('#qaFcHint').classList.remove('hidden');
+    $('#qaFcRateRow').classList.add('hidden');
+
+    const remaining = state.qafc.deck.filter(it => it.status !== 'known');
+    if (remaining.length === 0) {
+        $('#qaFcCounter').textContent = 'Koniec!';
+        $('#qaFcFront').textContent = 'Wszystkie fiszki oznaczone jako „Umiem" 🎉';
+        $('#qaFcBack').textContent = '';
+        $('#qaFcTopicLabel').textContent = '';
+        $('#qaFcProgress').style.width = '100%';
+        $('#qaFcKnown').textContent = `Umiem: ${state.qafc.known}`;
+        return;
+    }
+
+    state.qafc.current = remaining[0];
+    const item = state.qafc.current.it;
+    $('#qaFcFront').textContent = item.q;
+    $('#qaFcBack').textContent = item.a;
+    $('#qaFcTopicLabel').textContent = item.topic || '';
+
+    const done = state.qafc.total - remaining.length;
+    $('#qaFcCounter').textContent = `Fiszka ${done + 1} / ${state.qafc.total}`;
+    $('#qaFcKnown').textContent = `Umiem: ${state.qafc.known}`;
+    $('#qaFcProgress').style.width = `${(done / state.qafc.total) * 100}%`;
+}
+
+function flipQAFlashcard() {
+    if (!state.qafc.current) return;
+    state.qafc.flipped = !state.qafc.flipped;
+    $('#qaFlashcard').classList.toggle('is-flipped', state.qafc.flipped);
+    if (state.qafc.flipped) {
+        $('#qaFcHint').classList.add('hidden');
+        $('#qaFcRateRow').classList.remove('hidden');
+    } else {
+        $('#qaFcHint').classList.remove('hidden');
+        $('#qaFcRateRow').classList.add('hidden');
+    }
+}
+
+function rateQAFlashcard(known) {
+    if (!state.qafc.current) return;
+    state.qafc.current.status = known ? 'known' : 'pending';
+    if (known) state.qafc.known++;
+    // Move 'pending' to back of deck so it comes around again
+    if (!known) {
+        const idx = state.qafc.deck.indexOf(state.qafc.current);
+        if (idx !== -1) {
+            state.qafc.deck.splice(idx, 1);
+            state.qafc.deck.push(state.qafc.current);
+        }
+    }
+    nextQAFlashcard();
 }
 
 /* ──────────────────────────────────────────────────────────

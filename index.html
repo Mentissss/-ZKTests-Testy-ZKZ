@@ -93,6 +93,15 @@
                     <span class="feature-card__arrow">→</span>
                 </button>
 
+                <button class="feature-card" data-view="qa-fc" type="button">
+                    <div class="feature-card__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                    </div>
+                    <h3>Fiszki baz</h3>
+                    <p>Ucz się z baz: Ustne, Opisowe i Testowe zamknięte — każde Q&amp;A jako fiszka.</p>
+                    <span class="feature-card__arrow">→</span>
+                </button>
+
                 <button class="feature-card" data-view="links" type="button">
                     <div class="feature-card__icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
@@ -537,6 +546,62 @@
             <div class="heatmap-grid" id="heatmapGrid"></div>
         </section>
 
+        <!-- ── QA FLASHCARDS (Ustne / Opisowe / Testowe) ──── -->
+        <section id="view-qa-fc" class="view view--full">
+            <div class="runner-bar">
+                <button class="btn btn--ghost btn--sm" data-view="home" type="button">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Główna
+                </button>
+                <span class="runner-bar__title" id="qaFcTitle">Fiszki baz</span>
+                <button class="btn btn--ghost btn--sm" id="qaFcRestartBtn" type="button">Przetasuj</button>
+            </div>
+
+            <div class="progress-strip">
+                <div class="progress-strip__bar" id="qaFcProgress"></div>
+            </div>
+
+            <div class="oral-controls">
+                <label class="oral-control">
+                    <span>Baza pytań</span>
+                    <select id="qaFcDbSelect">
+                        <option value="ustne">Ustne (276 pyt.)</option>
+                        <option value="opisowe">Opisowe (174 pyt.)</option>
+                        <option value="testowe">Testowe zamknięte (275 pyt.)</option>
+                        <option value="all">Wszystkie (725 pyt.)</option>
+                    </select>
+                </label>
+                <button class="btn btn--primary btn--sm" id="qaFcStartBtn" type="button">Zacznij</button>
+            </div>
+
+            <div id="qaFcBody" class="hidden">
+                <div class="runner-meta">
+                    <span id="qaFcCounter">Fiszka 1 / 0</span>
+                    <span id="qaFcKnown">Umiem: 0</span>
+                </div>
+
+                <div class="flashcard" id="qaFlashcard" tabindex="0">
+                    <div class="flashcard__inner" id="qaFlashcardInner">
+                        <div class="flashcard__face flashcard__face--front">
+                            <span class="flashcard__hint">Pytanie · kliknij, aby odwrócić</span>
+                            <div class="flashcard__text" id="qaFcFront"></div>
+                        </div>
+                        <div class="flashcard__face flashcard__face--back">
+                            <span class="flashcard__hint">Odpowiedź</span>
+                            <div class="flashcard__text" id="qaFcBack"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="runner-actions runner-actions--rate hidden" id="qaFcRateRow">
+                    <button class="btn btn--rate btn--rate-no" id="qaFcNo" type="button">Powtórz</button>
+                    <button class="btn btn--rate btn--rate-yes" id="qaFcYes" type="button">Umiem</button>
+                </div>
+                <p class="hint-text" id="qaFcHint">Najpierw odwróć fiszkę, aby ocenić.</p>
+                <p class="muted" style="text-align:center;font-size:.8rem;margin-top:.5rem;" id="qaFcTopicLabel"></p>
+            </div>
+        </section>
+
         <!-- ── ORAL SIMULATOR ─────────────────────────────── -->
         <section id="view-oral-sim" class="view view--full">
             <div class="runner-bar">
@@ -563,6 +628,22 @@
             </div>
 
             <div class="oral-controls">
+                <label class="oral-control">
+                    <span>Baza pytań</span>
+                    <select id="oralDbSelect">
+                        <option value="default">Domyślne (wbudowane)</option>
+                        <option value="ustne">Ustne</option>
+                        <option value="opisowe">Opisowe</option>
+                        <option value="testowe">Testowe zamknięte</option>
+                        <option value="all">Wszystkie bazy</option>
+                    </select>
+                </label>
+                <label class="oral-control">
+                    <span>Temat</span>
+                    <select id="oralTopicSelect">
+                        <option value="all">Wszystkie tematy</option>
+                    </select>
+                </label>
                 <label class="oral-control">
                     <span>Czas na zastanowienie</span>
                     <select id="oralTimerSelect">
@@ -792,6 +873,7 @@
     <div id="toast" class="toast hidden"></div>
 
     <script src="tests/tests-data.js"></script>
+    <script src="tests/qa-data.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
