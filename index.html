@@ -176,6 +176,33 @@
                     <h3 class="test-group__title">Ogólne</h3>
                     <div class="tile-grid" id="generalGrid"></div>
                 </section>
+
+                <section class="test-group" id="groupProtected">
+                    <h3 class="test-group__title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                        Testy Grupowe (chronione)
+                    </h3>
+                    <div class="tile-grid">
+                        <button class="tile tile--locked" type="button" data-protected-key="Grupa_1">
+                            <div class="tile__icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                            <div class="tile__body">
+                                <span class="tile__name">Grupa 1</span>
+                                <span class="tile__meta">60 pytań · 60 minut · 🔒 Hasło</span>
+                            </div>
+                        </button>
+                        <button class="tile tile--locked" type="button" data-protected-key="Grupa_2">
+                            <div class="tile__icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                            <div class="tile__body">
+                                <span class="tile__name">Grupa 2</span>
+                                <span class="tile__meta">60 pytań · 60 minut · 🔒 Hasło</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
             </div>
         </section>
 
@@ -869,11 +896,30 @@
         </div>
     </div>
 
+    <!-- ── Password modal ──────────────────────────────── -->
+    <div id="passwordModal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal__backdrop" data-close-modal></div>
+        <div class="modal__window modal__window--picker">
+            <button class="modal__close" data-close-modal type="button" aria-label="Zamknij">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+            <p class="kicker">Test chroniony</p>
+            <h3 id="passwordModalTitle">Podaj hasło dostępu</h3>
+            <p class="muted" style="margin-bottom:1.2rem">Ten test jest zabezpieczony hasłem.</p>
+            <div style="display:flex;gap:.6rem;align-items:center">
+                <input id="passwordInput" type="password" class="password-input" placeholder="Hasło…" autocomplete="off" style="flex:1;padding:.65rem .9rem;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:1rem;outline:none">
+                <button id="passwordSubmit" class="btn btn--primary" type="button">Odblokuj</button>
+            </div>
+            <p id="passwordError" class="error-message hidden" style="margin-top:.6rem">Nieprawidłowe hasło.</p>
+        </div>
+    </div>
+
     <!-- ── Toast ─────────────────────────────────────────── -->
     <div id="toast" class="toast hidden"></div>
 
     <script src="tests/tests-data.js"></script>
     <script src="tests/qa-data.js"></script>
+    <script src="tests/protected-tests.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

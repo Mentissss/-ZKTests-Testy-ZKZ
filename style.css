@@ -539,6 +539,12 @@ a { color: inherit; text-decoration: none; }
 .tile__meta { color: var(--muted); font-size: .8rem; margin-top: 2px; }
 .tile__arrow { color: var(--muted-2); font-size: 1.1rem; transition: transform .15s, color .15s; }
 .tile:hover .tile__arrow { transform: translateX(3px); color: var(--primary); }
+/* ── Locked tile (protected tests) ─────────────────────── */
+.tile__name { font-size: .98rem; font-weight: 600; color: var(--text); line-height: 1.25; }
+.tile--locked { opacity: .85; }
+.tile--locked .tile__icon { background: rgba(var(--primary-rgb, 99,102,241),.1); color: var(--primary); }
+.tile--locked:hover { border-color: var(--primary); opacity: 1; }
+
 
 /* ── Materials grid ─────────────────────────────────────── */
 .materials-grid {

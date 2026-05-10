@@ -626,6 +626,22 @@ function bindGlobalControls() {
         toast('Zapisana sesja usunięta');
     });
 
+    // Protected tests
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-protected-key]');
+        if (btn) openProtectedTest(btn.dataset.protectedKey);
+    });
+    $('#passwordSubmit').addEventListener('click', submitProtectedPassword);
+    $('#passwordInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') submitProtectedPassword();
+    });
+    document.querySelectorAll('#passwordModal [data-close-modal]').forEach(el => {
+        el.addEventListener('click', () => {
+            $('#passwordModal').classList.add('hidden');
+            _pendingProtectedKey = null;
+        });
+    });
+
     // Dialog
     $('#dialogBackBtn').addEventListener('click', openDialogList);
     $('#dialogRevealBtn').addEventListener('click', dialogReveal);
@@ -2097,6 +2113,98 @@ function classifyQuestion(q) {
 // zawsze dostaje ten sam odcisk, niezależnie od folderu źródłowego.
 function questionNorm(q) {
     return questionKey(q);  // reuse — jeden spójny odcisk w całej aplikacji
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// PROTECTED TESTS (XOR encrypted, password-gated)
+// ═══════════════════════════════════════════════════════════════════
+
+let _pendingProtectedKey = null;
+
+function xorDecrypt(b64, password) {
+    const raw = atob(b64);
+    const key = password;
+    const bytes = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i) ^ key.charCodeAt(i % key.length);
+    return new TextDecoder().decode(bytes);
+}
+
+function parseProtectedQuestions(plaintext) {
+    return plaintext.split(/\n\n+/).map(block => {
+        const lines = block.split(/\n/);
+        if (lines.length < 5) return null;
+        const keyLine = lines[0].trim();        // e.g. X010
+        const question = lines[1].trim();
+        const optA = lines[2].trim();
+        const optB = lines[3].trim();
+        const optC = lines[4].trim();
+        const keyStr = keyLine.replace(/^X/i, '');  // '010'
+        const correctIndexes = [];
+        for (let i = 0; i < keyStr.length; i++) {
+            if (keyStr[i] === '1') correctIndexes.push(i);
+        }
+        return {
+            questionText: question,
+            options: [optA, optB, optC],
+            correctIndexes,
+            categoryLabel: 'Testy Grupowe'
+        };
+    }).filter(Boolean);
+}
+
+function openProtectedTest(groupKey) {
+    if (typeof PROTECTED_TESTS === 'undefined' || !PROTECTED_TESTS[groupKey]) {
+        showError('Brak danych dla tego testu.');
+        return;
+    }
+    _pendingProtectedKey = groupKey;
+    $('#passwordModalTitle').textContent = `Hasło do: ${PROTECTED_TESTS[groupKey].title}`;
+    $('#passwordInput').value = '';
+    $('#passwordError').classList.add('hidden');
+    $('#passwordModal').classList.remove('hidden');
+    setTimeout(() => $('#passwordInput').focus(), 80);
+}
+
+function submitProtectedPassword() {
+    const pw = $('#passwordInput').value;
+    const groupKey = _pendingProtectedKey;
+    if (!groupKey || !pw) return;
+    const entry = PROTECTED_TESTS[groupKey];
+    let plaintext;
+    try {
+        plaintext = xorDecrypt(entry.data, pw);
+        // Quick sanity check: should start with X
+        if (!plaintext.trimStart().startsWith('X')) throw new Error('bad');
+    } catch (e) {
+        $('#passwordError').classList.remove('hidden');
+        $('#passwordInput').select();
+        return;
+    }
+    const questions = parseProtectedQuestions(plaintext);
+    if (!questions.length) {
+        $('#passwordError').classList.remove('hidden');
+        return;
+    }
+    // Close modal
+    $('#passwordModal').classList.add('hidden');
+    _pendingProtectedKey = null;
+
+    // Launch as mock exam (reuses timer + 60q infrastructure)
+    clearMockSession();
+    state.mock.active = true;
+    state.mock.questions = questions.map(shuffleQuestionOptions);
+    state.mock.answers = questions.map(() => []);
+    state.mock.index = 0;
+    state.mock.startedAt = Date.now();
+    const mins = entry.timeLimitMin || 60;
+    state.mock.endsAt = state.mock.startedAt + mins * 60 * 1000;
+    state.mock.finishedSummary = null;
+
+    $('#quizTestName') && ($('#quizTestName').textContent = entry.title);
+    navigate('mock-run');
+    renderMockQuestion();
+    startMockTimer();
 }
 
 function startMockExam() {
