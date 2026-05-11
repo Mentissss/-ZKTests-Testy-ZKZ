@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Generator Grupa 3 & 4</title>
+<style>
+  body { font-family: sans-serif; max-width: 600px; margin: 60px auto; text-align: center; background: #0f0f13; color: #e2e2e9; }
+  h2 { margin-bottom: 8px; }
+  p { color: #888; margin-bottom: 32px; }
+  button { padding: 14px 32px; font-size: 1rem; background: #6c63ff; color: #fff; border: none; border-radius: 10px; cursor: pointer; }
+  button:hover { background: #5a52e0; }
+  #status { margin-top: 20px; font-size: .9rem; color: #6c6; }
+</style>
+</head>
+<body>
+<h2>🔐 Generator testów grupowych</h2>
+<p>Kliknij przycisk, aby pobrać plik <code>protected-tests-extra.js</code><br>z zaszyfrowanymi danymi Grupy 3 i Grupy 4.</p>
+<button onclick="generate()">Generuj zaszyfrowane dane</button>
+<div id="status"></div>
+
+<div id="results" style="display:none; text-align:left; margin-top:24px;">
+  <p style="color:#aaa; font-size:.85rem;">Skopiuj oba teksty i wyślij do Claude:</p>
+  <label style="display:block; margin-bottom:6px; color:#ccc; font-size:.85rem;">Grupa 3:</label>
+  <textarea id="out3" rows="4" style="width:100%; background:#1a1a24; color:#9f9; border:1px solid #444; border-radius:6px; padding:8px; font-size:.75rem; resize:vertical;" readonly onclick="this.select()"></textarea>
+  <label style="display:block; margin:12px 0 6px; color:#ccc; font-size:.85rem;">Grupa 4:</label>
+  <textarea id="out4" rows="4" style="width:100%; background:#1a1a24; color:#9f9; border:1px solid #444; border-radius:6px; padding:8px; font-size:.75rem; resize:vertical;" readonly onclick="this.select()"></textarea>
+</div>
+
+<script>
+function xorEncrypt(text, password) {
+  const textBytes = new TextEncoder().encode(text);
+  const keyBytes  = new TextEncoder().encode(password);
+  const enc = new Uint8Array(textBytes.length);
+  for (let i = 0; i < textBytes.length; i++)
+    enc[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+  let bin = '';
+  for (let i = 0; i < enc.length; i++) bin += String.fromCharCode(enc[i]);
+  return btoa(bin);
+}
+
+const PW = '!@Testy1209@!';
+
+// ── GRUPA 3 ──────────────────────────────────────────────────────────
+const g3 = [
+  ['X010','Podatkiem pośrednim jest m.in.','a) podatek dochodowy od osób prawnych.','b) podatek akcyzowy oraz podatek VAT.','c) podatek od spadków i darowizn oraz podatek tonażowy.'],
+  ['X010','Podatnikiem CIT jest m.in.','a) spółka partnerska.','b) spółka komandytowo-akcyjna.','c) spółka cywilna utworzona przez osoby prawne.'],
+  ['X001','Zgodnie z ustawą o podatku dochodowym od osób prawnych, do kosztów uzyskania przychodów z działalności gospodarczej zalicza się','a) wydatki na spłatę kredytów.','b) straty z lat poprzednich do 50% ich wartości.','c) odpisy amortyzacyjne od wartości niematerialnych i prawnych.'],
+  ['X100','Eksport towarów w rozumieniu ustawy o podatku od towarów i usług to','a) potwierdzona przez organ celny dostawa towarów wysyłanych lub transportowanych z terytorium kraju poza terytorium UE.','b) przywóz towarów na terytorium Polski z kraju trzeciego.','c) wywóz towarów z kraju na terytorium innego państwa członkowskiego.'],
+  ['X001','Wygenerowany z systemu AES komunikat IE-599 jest konieczny do zastosowania stawki 0% w rozliczeniu podatku VAT','a) przy wywozie z kraju towarów do innych krajów UE w ramach wewnątrzwspólnotowej dostawy towarów.','b) wyłącznie przy eksporcie nowych środków transportu.','c) przy eksporcie towarów.'],
+  ['X001','Deklaracje miesięczne w zakresie podatku od towarów i usług (w tym sporządzane w formie JPK) składane są w terminie do','a) 20 dnia miesiąca następującego po każdym kolejnym miesiącu.','b) 7 dnia miesiąca następującego po każdym kolejnym miesiącu.','c) 25 dnia miesiąca następującego po każdym kolejnym miesiącu.'],
+  ['X001','Organem podatkowym właściwym w zakresie akcyzy z tytułu importu i eksportu jest','a) naczelnik urzędu celnego.','b) naczelnik urzędu skarbowego.','c) naczelnik urzędu celno-skarbowego, z wyłączeniem poboru.'],
+  ['X010','Podatnik podatku akcyzowego z tytułu nabycia wewnątrzwspólnotowego samochodu osobowego jest obowiązany złożyć deklarację uproszczoną właściwemu naczelnikowi urzędu skarbowego w terminie','a) 25 dni, licząc od dnia powstania obowiązku podatkowego, nie później jednak niż w dniu rejestracji samochodu osobowego na terytorium kraju zgodnie z przepisami o ruchu drogowym.','b) 14 dni, licząc od dnia powstania obowiązku podatkowego, nie później jednak niż w dniu rejestracji samochodu osobowego na terytorium kraju zgodnie z przepisami o ruchu drogowym.','c) do 25 dnia kolejnego miesiąca po miesiącu, w którym powstał obowiązek podatkowy.'],
+  ['X010','Obowiązek oznaczania wyrobów akcyzowych podatkowymi znakami akcyzy ciąży na podmiocie będącym','a) eksporterem.','b) importerem.','c) finalnym nabywcą.'],
+  ['X100','Organ podatkowy zgodnie z Ordynacją podatkową stwierdza nieważność decyzji ostatecznej','a) gdy decyzja została wydana bez podstawy prawnej.','b) jeżeli strona nie nabyła prawa i przemawia za tym interes publiczny lub ważny interes podatnika.','c) jako jeden ze sposobów zakończenia postępowania odwoławczego.'],
+  ['X001','Do nadzwyczajnych środków wzruszenia decyzji ostatecznych wydanych w postępowaniu podatkowym zalicza się','a) odwołanie od decyzji.','b) zażalenie.','c) wznowienie postępowania.'],
+  ['X100','Dług celny wygasa m.in. przez','a) uiszczenie lub umorzenie kwoty długu celnego.','b) zabezpieczenie kwoty długu celnego.','c) zwolnienie z należności celnych.'],
+  ['X001','Jedną z dopuszczalnych procedur celnych jest','a) umieszczenie towaru w magazynie czasowego składowania.','b) zwolnienie towaru.','c) objęcie towaru procedurą wywozu.'],
+  ['X100','Jeśli z założenia towar możemy klasyfikować do dwóch lub więcej pozycji to jego klasyfikację należy przeprowadzić opierając się na regule ORINS','a) pierwszej i trzeciej.','b) wyłącznie 1.','c) wyłącznie 3.'],
+  ['X010','Futerały do aparatów fotograficznych zgłoszone razem z aparatami do odprawy celnej klasyfikuje się','a) razem, ale za zgodą organów celnych.','b) razem z aparatami.','c) oddzielnie.'],
+  ['X010','Za interpretację Nomenklatury Scalonej (CN) odpowiada','a) Światowa Organizacja Celna (WCO).','b) Komisja Europejska.','c) Światowa Organizacja Handlu (WTO).'],
+  ['X100','Klasyfikacji taryfowej materiałów opakowaniowych prezentowanych razem z towarem głównym dokonuje się w oparciu o','a) 5 regułę Ogólnych Reguł Interpretacji Nomenklatury Scalonej.','b) 3 regułę Ogólnych Reguł Interpretacji Nomenklatury Scalonej.','c) 2 regułę Ogólnych Reguł Interpretacji Nomenklatury Scalonej.'],
+  ['X001','Który z poniższych elementów dodaje się do ceny faktycznie zapłaconej lub należnej za przywożone towary w celu określenia wartości celnej towaru?','a) Należności celne przywozowe lub inne opłaty pobierane na obszarze celnym UE z tytułu przywozu lub sprzedaży towarów.','b) Opłaty za prawo do kopiowania przywiezionych towarów na obszarze celnym Unii Europejskiej.','c) Dotyczące wycenianych towarów honoraria, tantiemy autorskie i opłaty licencyjne, które musi opłacić kupujący jako warunek sprzedaży wycenianych towarów.'],
+  ['X001','Podstawowym dokumentem wykorzystywanym przy ustalaniu wartości celnej na podstawie wartości transakcyjnej jest','a) polecenie dokonania przelewu środków pieniężnych.','b) faktura proforma.','c) faktura handlowa.'],
+  ['X001','Zasadniczo handel między krajami członkowskimi WTO oparty jest na zasadach','a) wymiany preferencyjnej.','b) wolnego obrotu.','c) wymiany niepreferencyjnej.'],
+  ['X100','Decyzja korzystna dla strony musi być sporządzona w następującej formie','a) przepisy unijne nie przewidują szczególnej formy dla takich decyzji.','b) zgodnie z zapisami UKC decyzja taka musi zawierać uzasadnienie prawne i faktyczne rozstrzygnięcia.','c) dopuszczalne jest wydanie takiej decyzji jedynie w formie pisemnej.'],
+  ['X010','Osobom prawnym pisma w postępowaniu celnym doręcza się','a) wyłącznie na adres osoby upoważnionej do reprezentowania osoby.','b) między innymi w lokalu ich siedziby lub miejscu prowadzenia działalności osobie upoważnionej do odbioru korespondencji.','c) dowolnie wybranej osobie w lokalu ich siedziby lub miejscu prowadzenia działalności.'],
+  ['X100','Zgodnie z przepisami Kodeksu karnego „mieniem znacznej wartości” jest mienie, którego wartość w czasie popełnienia czynu zabronionego','a) przekracza 200.000 zł.','b) nie przekracza 100.000 zł.','c) przekracza 50.000 zł.'],
+  ['X001','Postanowienie o wszczęciu śledztwa w sprawie o przestępstwo skarbowe może wydać','a) Policja.','b) Straż Graniczna.','c) naczelnik urzędu celno-skarbowego.'],
+  ['X010','Postępowanie przygotowawcze prowadzone przeciwko podejrzanemu o przestępstwo z art. 44 ustawy z dnia 18 października 2006 roku o wyrobie napojów spirytusowych, nadzoruje','a) Szef Krajowej Administracji Skarbowej.','b) prokurator.','c) dyrektor izby administracji skarbowej.'],
+  ['X001','Zgodnie z przepisami Kodeksu postępowania karnego jedną z dyrektyw przeszukania jest dyrektywa (art. 227 kpk)','a) szybkości.','b) koncentracji.','c) humanitaryzmu.'],
+  ['X001','Zgodnie z przepisami Kodeksu wykroczeń karalność wykroczenia ustaje, jeżeli od czasu','a) jego ujawnienia upłynęło 12 miesięcy.','b) schwytania sprawcy upłynął rok.','c) jego popełnienia upłynął rok.'],
+  ['X010','Zgodnie z przepisami Kodeksu karnego zbrodnię można popełnić','a) poprzez zaniedbanie.','b) umyślnie.','c) nieumyślnie.'],
+  ['X100','W celu ustalenia, czy istnieją podstawy do wystąpienia z wnioskiem o ukaranie oraz zebrania danych niezbędnych do sporządzenia takiego wniosku, funkcjonariusz','a) z urzędu przeprowadza czynności wyjaśniające.','b) przeprowadza czynności sprawdzające.','c) może przeprowadzić czynności wyjaśniające.'],
+  ['X001','Zgodnie z przepisami Kodeksu postępowania w sprawach o wykroczenia w postępowaniu mandatowym','a) stosuje się mandat kredytowy.','b) grzywna nie stanowi dochodów budżetu państwa.','c) można nałożyć grzywnę do 500 złotych.'],
+  ['X010','Nakładając na sprawcę wykroczenia skarbowego karę grzywny, w drodze mandatu karnego, funkcjonariusz na odcinku „A” formularza','a) zaznacza numer upoważnienia.','b) oznacza rodzaj mandatu.','c) zaznacza, że sprawca został pouczony o prawach i obowiązkach.'],
+  ['X100','Spółką kapitałową prawa handlowego jest','a) spółka akcyjna.','b) spółka komandytowo-akcyjna.','c) spółka komandytowa.'],
+  ['X001','Przeszukania lokalu mieszkalnego wykonywane w ramach kontroli celno-skarbowej dokonujemy w trybie','a) Kodeksu Karnego Skarbowego.','b) Kodeksu Postępowania Administracyjnego.','c) Kodeksu Postępowania Karnego.'],
+  ['X010','Naczelnik UCS może zarządzić strzeżenie towarów, w szczególności, gdy','a) kwota ewentualnych należności mogących powstać w przypadku usunięcia towaru spod dozoru celnego jest wyższa niż złożone zabezpieczenie.','b) towar wprowadzony do UE nie może być dostarczony do urzędu celno-skarbowego, miejsca uznanego lub miejsca wyznaczonego na skutek działania siły wyższej lub nieprzewidzianych okoliczności.','c) niemożliwe jest nałożenie zamknięć urzędowych na środek przewozowy i istnieje uzasadnione podejrzenie, że towar zostanie usunięty spod dozoru.'],
+  ['X010','Naczelnik UCS w drodze decyzji może na terenie RP zarządzić konwój, w szczególności, gdy','a) towar czasowo składowany nie może być przekazany do depozytu lub magazynu czasowego składowania.','b) istnieje uzasadnione podejrzenie, że towar nie zostanie dostarczony do wskazanego urzędu, miejsca uznanego lub wyznaczonego.','c) towar wprowadzony do UE wymaga przeładunku.'],
+  ['X100','W jakim czasie po dniu otrzymania wyniku kontroli, z zakończonej kontroli celno-skarbowej w zakresie przestrzegania przepisów prawa podatkowego kontrolowany może złożyć deklarację korygującą wcześniej złożoną deklarację podatkową?','a) W terminie do 14 dni.','b) Niezwłocznie, jednak nie później w ciągu 30 dni.','c) Nie może już złożyć korekty deklaracji.'],
+  ['X001','Żądanie udostępnienia akt podczas wykonywania kontroli celno-skarbowej może dotyczyć','a) każdego rodzaju akt bez względu na kontrolowany zakres i okres.','b) tylko akt z okresu objętego kontrolą.','c) zarówno akt z okresu objętego kontrolą jak i akt spoza tego okresu, jeżeli wiążą się z zakresem kontroli i nie upłynął czas na ich przechowywanie.'],
+  ['X010','Badanie towarów i pobieranie próbek może nastąpić wg Unijnego Kodeksu Celnego','a) wyłącznie z inicjatywy podmiotu dysponującego towarem.','b) zarówno z inicjatywy organu celnego, jak i podmiotu dysponującego towarem.','c) wyłącznie z inicjatywy organu celnego.'],
+  ['X100','Organ celny odmawia przyjęcia zgłoszenia celnego, które','a) nie spełnia wymogów formalnych.','b) nie jest złożone przez agenta celnego.','c) zawiera niewłaściwy kod taryfowy (CN) towaru.'],
+  ['X100','Kto wydaje zaświadczenia na krajowe przewozy drogowe na potrzeby własne?','a) Starosta.','b) Główny Inspektor Transportu Drogowego.','c) Naczelnik urzędu celno-skarbowego właściwy dla siedziby przedsiębiorcy.'],
+  ['X001','Urządzenie służące do zapisu prędkości jazdy, czasu pracy i przerw na odpoczynek kierowcy w transporcie drogowym to','a) smartfon z aplikacją e-Toll rejestrująca przejazdy.','b) karta kierowcy.','c) tachograf.'],
+  ['X010','Za przejazd po drodze publicznej pojazdu nienormatywnego bez zezwolenia lub niezgodnie z warunkami określonymi dla danej kategorii zezwolenia, nakłada się karę pieniężną w drodze','a) decyzji administracyjnej dyrektora izby administracji skarbowej.','b) decyzji administracyjnej wydawanej przez naczelnika urzędu celno-skarbowego.','c) mandatu karnego nakładanego w imieniu naczelnika urzędu celno-skarbowego.'],
+  ['X001','Kto ma obowiązek zgodnie z ustawą o SENT niezwłocznie aktualizować dane zawarte w zgłoszeniu?','a) Zawsze przewoźnik, który realizuje przewóz.','b) Każdy uczestnik procesu, który uzyskał informację o zmianie danych niezależnie od tego czy był zobowiązany do ich zgłoszenia.','c) Podmiot wysyłający, podmiot odbierający, przewoźnik, podmiot sprzedający oraz podmiot nabywający w takim zakresie, w jakim byli obowiązani do ich zgłoszenia.'],
+  ['X010','Kierujący pojazdem, realizujący przewóz SENT, w przypadku stwierdzenia trwającej dłużej niż godzinę niesprawności lokalizatora albo zewnętrznego systemu lokalizacji ma obowiązek','a) udania się bezpośrednio do najbliższego serwisu w celu dokonania naprawy urządzeń.','b) niezwłocznego zatrzymania się na najbliższym parkingu samochodowym lub w najbliższej zatoce postojowej.','c) niezwłocznego zgłoszenia tego faktu zarządzającemu transportem w firmie oraz odnotowania zdarzenia na karcie kierowcy lub tarczce tachografu analogowego.'],
+  ['X100','Jeżeli funkcjonariusz w trakcie kontroli, ujawni naruszenie, za które ustawa o drogach publicznych przewiduje karę pieniężną','a) przekazuje dokumenty z przeprowadzonej kontroli Głównemu Inspektorowi Transportu Drogowego.','b) nakłada karę grzywny w trybie Kodeksu postępowania w sprawach o wykroczenia.','c) przekazuje dokumenty z przeprowadzonej kontroli do właściwej komórki urzędu celno-skarbowego.'],
+  ['X100','Analiza ryzyka w Służbie Celno-Skarbowej służy co do zasady do','a) skutecznego typowania do kontroli osób, towarów i środków przewozowych.','b) walki z korupcją.','c) zmniejszenia zjawiska czynnej napaści na funkcjonariuszy.'],
+  ['X100','Pobranie próbki paliwa ze zbiornika środka przewozowego odbywa się','a) przy udziale kierującego kontrolowanym środkiem przewozowym albo przywołanego świadka.','b) zawsze przy udziale kierującego środkiem przewozowym.','c) tylko przy udziale licencjonowanego próbobiorcy.'],
+  ['X010','Dokument urzędowy CHED A to','a) powszechny weterynaryjny dokument wejścia dla zwierząt.','b) dokument potwierdzający przejście weterynaryjnej kontroli granicznej.','c) świadectwo przetworzenia produktów pochodzenia zwierzęcego zgodnie z wymogami UE.'],
+  ['X100','W gorzelniach funkcjonujących na terytorium kraju stosowany jest system zamkniętego magazynu','a) obligatoryjnie.','b) obligatoryjnie, chyba że właściwy naczelnik urzędu celno-skarbowego obejmie gorzelnię stałą kontrolą.','c) fakultatywnie, o stosowaniu systemu zamkniętego lub otwartego magazynu decyduje naczelnik urzędu celno-skarbowego w decyzji zezwalającej na prowadzenie składu podatkowego.'],
+];
+
+// ── GRUPA 4 ──────────────────────────────────────────────────────────
+const g4 = [
+  ['X100','Zgodnie z przepisami Kodeksu postępowania karnego przeszukanie rozpoczęte za dnia','a) można prowadzić nadal mimo nastania pory nocnej.','b) należy zakończyć do godz. 22:00.','c) żadna z tych odpowiedzi nie jest prawidłowa.'],
+  ['X010','Zgodnie z przepisami Kodeksu postępowania karnego osobę, u której ma nastąpić przeszukanie należy przed rozpoczęciem czynności','a) poinformować o tym, że zostanie sporządzony protokół z czynności.','b) zawiadomić o jej celu.','c) pouczyć o prawach.'],
+  ['X001','Protokół z przesłuchania świadka obejmującego okoliczności, na które rozciąga się obowiązek zachowania tajemnicy związanej z wykonywaniem zawodu lub funkcji','a) włącza się do akt sprawy.','b) żadna z tych odpowiedzi nie jest prawidłowa.','c) wyłącza się z akt sprawy.'],
+  ['X100','Funkcjonariusz dokonujący przeszukania biura podatkowego okazuje','a) postanowienie prokuratora.','b) zarządzenie sądu.','c) postanowienie prokuratorii.'],
+  ['X010','Z przeszukania systemu informatycznego dokonanego na podstawie przepisów Kodeksu postępowania karnego sporządza się protokół','a) jedynie wtedy, gdy zostaną ujawnione dane stanowiące dowód w sprawie.','b) obligatoryjnie.','c) fakultatywnie.'],
+  ['X010','Zgodnie z przepisami Kodeksu postępowania karnego, jeżeli przy przeszukaniu nie ma na miejscu gospodarza lokalu należy','a) wezwać adwokata.','b) do przeszukania przywołać przynajmniej jednego dorosłego domownika.','c) powiadomić prokuraturę regionalną.'],
+  ['X010','Zgodnie z przepisami Kodeksu postępowania karnego śledztwo prowadzi się w sprawach o','a) występki, gdy osobą podejrzaną jest aktor.','b) zbrodnie.','c) przestępstwa zagrożone karą aresztu.'],
+  ['X001','Postępowanie przygotowawcze w sprawie przywozu z zagranicy, wbrew przepisom, substancji zagrażających środowisku (art. 183 § 2 kk) jest prowadzone w formie','a) żadna z tych odpowiedzi nie jest prawidłowa.','b) dochodzenia.','c) śledztwa.'],
+  ['X100','Tymczasowe zajęcie mienia ruchomego może nastąpić w razie popełnienia czynu zabronionego na mieniu','a) sprawcy wykroczenia skarbowego przebywającego stale za granicą, który nie wyraził zgody na przyjęcie mandatu karnego.','b) interwenienta.','c) osoby podejrzewanej.'],
+  ['X100','Zatrzymanie osoby podejrzanej, co do której istnieje uzasadnione przypuszczenie, że popełniła przestępstwo jest środkiem','a) przymusu.','b) zapobiegawczym.','c) karnym.'],
+  ['X100','Zgodnie z przepisami Kodeksu postępowania w sprawach o wykroczenia przesłuchanie osoby, co do której istnieje uzasadniona podstawa do sporządzenia przeciwko niej wniosku o ukaranie rozpoczyna się od','a) powiadomienia jej o treści zarzutu wpisanego do protokołu przesłuchania.','b) od zapoznania jej z prawami i obowiązkami.','c) od pytania o przebieg zdarzenia.'],
+  ['X100','Źródła informacji dla analizy ryzyka możemy podzielić na','a) zewnętrzne i wewnętrzne.','b) surowe i przetworzone.','c) termalne i nietermalne.'],
+  ['X010','Kontrole celno-skarbowe mogą przeprowadzać','a) funkcjonariusze i pracownicy wszystkich rodzajów jednostek organizacyjnych KAS.','b) funkcjonariusze i pracownicy urzędów celno-skarbowych.','c) jedynie funkcjonariusze urzędów celno-skarbowych.'],
+  ['X001','Aby dokonać przeszukania lokalu mieszkalnego w ramach kontroli celno-skarbowej należy','a) wszcząć właściwe postępowanie karne skarbowe.','b) uzyskać od prokuratora nakaz przeszukania.','c) uzyskać zgodę właściwego prokuratora rejonowego.'],
+  ['X001','Niezbędnym wymogiem dla prawidłowego wszczęcia kontroli celno-skarbowej poza urzędem w siedzibie przedsiębiorcy jest','a) okazanie legitymacji służbowej.','b) doręczenie upoważnienia do kontroli oraz okazanie legitymacji służbowej.','c) doręczenie upoważnienia do kontroli, a w przypadku żądania dodatkowo okazanie legitymacji służbowej.'],
+  ['X100','Kontrola celno-skarbowa w ruchu osobowym na granicy nie obejmuje','a) kontroli legalności pobytu cudzoziemców.','b) kontroli przewożonego bagażu.','c) kontroli z użyciem urządzeń technicznych i psów służbowych.'],
+  ['X010','Posiadanie pozwolenia jest co do zasady elementem ukierunkowanym na weryfikację zgłoszenia do procedury','a) powrotnego wywozu.','b) końcowego przeznaczenia.','c) tranzytu.'],
+  ['X001','Aby wykonywać zawód przewoźnika drogowego należy uzyskać','a) licencję.','b) zaświadczenie.','c) zezwolenie.'],
+  ['X001','W jakim przypadku ustawy nie stosuje się do transportu drogowego rzeczy?','a) Zawsze, gdy przedsiębiorca wykonuje transport na własny rachunek.','b) Gdy masa pojazdu przekracza 3,5 tony, ale transport jest krajowy.','c) Gdy dopuszczalna masa całkowita pojazdu nie przekracza 3,5 tony i transport jest niezarobkowy.'],
+  ['X010','Które z poniższych towarów mogą podlegać obowiązkowi zgłoszenia w systemie SENT?','a) Elektronika użytkowa, odzież, książki.','b) Paliwa opałowe, alkohole techniczne, leki zagrożone niedostępnością.','c) Produkty spożywcze, woda mineralna, papier.'],
+  ['X010','W przypadku stwierdzenia nieprawidłowości w działaniu lokalizatora podczas przewozu objętego systemem monitorowania drogowego i kolejowego, kierujący pojazdem, może być ukarany','a) karą w postępowaniu karnym skarbowym.','b) karą grzywny nałożoną w drodze mandatu.','c) karą pieniężną w drodze decyzji administracyjnej.'],
+  ['X100','Za naruszenie obowiązku uiszczenia opłaty elektronicznej, wymierza się karę pieniężną w wysokości','a) 1500 zł lub 500 zł.','b) zależnej od dochodów właściciela pojazdu lub kierującego.','c) 1500 zł w każdym przypadku.'],
+  ['X001','Jakie badanie jest wymagane, aby wykryć obecność znacznika ACCUTRACE™ PLUS w paliwie?','a) Badanie wizualne (ocena zabarwienia).','b) Przeprowadzenie próby kwasowej.','c) Badanie chromatograficzne.'],
+  ['X010','Nabycie sprawdzające wykonuje się na podstawie','a) doręczonego upoważnienia stałego wydanego przez naczelnika urzędu skarbowego albo naczelnika urzędu celno-skarbowego.','b) legitymacji i upoważnienia stałego wydanego przez naczelnika urzędu skarbowego albo naczelnika urzędu celno-skarbowego.','c) upoważnienia stałego do kontroli celno-skarbowej.'],
+  ['X100','Podatkiem bezpośrednim jest','a) podatek od nieruchomości.','b) podatek VAT.','c) podatek akcyzowy.'],
+  ['X001','Procedura TAX FREE dotyczy osób fizycznych','a) posiadających stałe miejsca zamieszkania na terytorium RP.','b) posiadających stałe miejsce zamieszkania na terytorium UE.','c) nieposiadających stałego miejsca zamieszkania na terytorium UE.'],
+  ['X010','Znaki akcyzy mogą być zdjęte z opakowań jednostkowych wyrobów akcyzowych, na które zostały naniesione','a) po objęciu towarów procedurą dopuszczenia do obrotu.','b) jeżeli wyroby akcyzowe nie będą sprzedawane na terytorium kraju.','c) jeżeli zostanie zakończona procedura składu celnego.'],
+  ['X010','Procedurze TAX FREE podlegają','a) towary i paliwo znajdujące się w zbiorniku dowolnego pojazdu silnikowego oraz znajdujące się w przenośnym kanistrze, którego ilość nie przekracza 10 litrów.','b) tylko i wyłącznie towary (nie podlegają jej usługi ani paliwa).','c) towary, usługi i paliwa.'],
+  ['X100','Obowiązek podatkowy w przypadku importu wyrobów akcyzowych powstaje z dniem','a) powstania długu celnego w rozumieniu przepisów prawa celnego.','b) przemieszczenia przez granicę.','c) uregulowania należności celnych przywozowych lub wywozowych.'],
+  ['X001','Import towarów w rozumieniu ustawy o podatku od towarów i usług to','a) przywóz towarów z terytorium Unii Europejskiej na terytorium Rzeczpospolitej Polskiej.','b) wywóz towarów z terytorium Unii Europejskiej na terytorium państwa trzeciego.','c) przywóz towarów z terytorium państwa trzeciego na terytorium Unii Europejskiej.'],
+  ['X010','Zezwolenie na urządzanie loteria promocyjna, loterii fantowej, loterii audioteksowej, gry bingo fantowe wydaje','a) naczelnik urzędu skarbowego.','b) dyrektor izby administracji skarbowej.','c) naczelnik urzędu celno-skarbowego.'],
+  ['X100','Ogólne prawo podatkowe, ogólne prawa i obowiązki podatników oraz procedury reguluje','a) ustawa z dnia 29 sierpnia 1997 r. - Ordynacja podatkowa.','b) Konstytucja Rzeczpospolitej Polski.','c) Modelowa Konwencja Organizacja Współpracy Gospodarczej i Rozwoju (OECD).'],
+  ['X100','Elektroniczny dokument e-DD to dokument, na podstawie którego','a) przemieszcza się wyroby akcyzowe (zwolnione lub objęte stawką zerową, ze względu na przeznaczenie) na terytorium kraju poza procedurą zawieszenia poboru akcyzy.','b) przemieszcza się wyroby akcyzowe z zastosowaniem procedury zawieszenia poboru akcyzy.','c) przemieszcza się wewnątrzwspólnotowo samochód osobowy.'],
+  ['X001','Księgi podatkowe powinny być prowadzone','a) w sposób uzgodniony z organem podatkowym.','b) zgodnie z zasadami wynikającymi z kodeksu postępowania karnego.','c) w sposób rzetelny i niewadliwy.'],
+  ['X010','Do gier hazardowych zaliczamy','a) wyłącznie gry na automatach.','b) gry w karty, gry na automatach, gry losowe oraz zakłady wzajemne.','c) gry na automatach i konkurs wiedzy.'],
+  ['X100','Taryfę celną można między innymi zdefiniować jako','a) nomenklaturę towarową z przypisanymi do niej stawkami celnymi.','b) zbiór stawek celnych i podatkowych.','c) nomenklaturę towarową wraz z przypisanymi do niej uwagami.'],
+  ['X100','Jeden karnet TIR może być wykorzystany na','a) jeden przewóz.','b) dowolną ilość przewozów.','c) dwa przewozy.'],
+  ['X010','Kto może przedstawić towary organom celnym przy ich wyprowadzeniu poza obszar celny Unii Europejskiej?','a) Tylko osoba wyprowadzająca towary poza obszar celny Unii.','b) Osoba, która przejmuje odpowiedzialność za przewóz towarów przed ich wyprowadzeniem poza obszar celny Unii.','c) Osoba, która posiada dokumenty celne potwierdzające wywóz towarów.'],
+  ['X010','W jakim celu tworzy się wolne obszary celne (WOC) w Unii Europejskiej?','a) W celu umożliwienia przedsiębiorcom sprzedaży towarów bez pośrednictwa organów celnych.','b) Aby umożliwić przedsiębiorcom prowadzenie działalności przemysłowej, handlowej i usługowej po zgłoszeniu organom celnym, traktując towary jakby nie znajdowały się na obszarze celnym Unii Europejskiej.','c) W celu wprowadzenia bardziej restrykcyjnych zasad dla importu towarów do Unii Europejskiej.'],
+  ['X001','Jakie formy deklaracji mogą poprzedzać wyprowadzenie towarów poza obszar celny Unii Europejskiej?','a) Wyłącznie zgłoszenie celne.','b) Wyłącznie wywozowa deklaracja skrócona.','c) Zgłoszenie celne, zgłoszenie do powrotnego wywozu, wywozowa deklaracja skrócona.'],
+  ['X010','Jakie warunki musi spełnić podmiot gospodarczy ubiegający się o pozwolenie na procedury specjalne?','a) Musi być zarejestrowany w systemie celnym jako firma zajmująca się handlem międzynarodowym.','b) Musi mieć siedzibę w Unii Europejskiej oraz zapewnić prawidłową realizację operacji, a także składać zabezpieczenie na poczet należności celnych i podatkowych.','c) Musi posiadać doświadczoną kadrę pracowniczą oraz dostęp do odpowiednich magazynów umożliwiających stosowanie danej procedury.'],
+  ['X100','Organ celny może prowadzić skład celny','a) publiczny skład typu III.','b) publiczny skład typu II.','c) publiczny skład typu I.'],
+  ['X001','W Polsce karnet ATA wydawany jest przez','a) Urząd Celno-Skarbowy właściwy ze względu na siedzibę wnioskodawcy.','b) Zrzeszenie Międzynarodowych Przewoźników Drogowych.','c) Krajową Izbę Gospodarczą w Warszawie.'],
+  ['X001','Do jakiego organu składa się wniosek o ochronę praw własności intelektualnej','a) do ministra właściwego do spraw gospodarki.','b) do Naczelnika Urzędu Celno-Skarbowego w Gdańsku.','c) do Dyrektora IAS w Warszawie.'],
+  ['X100','Jakie towary przywożone z państw trzecich podlegają kontroli sanitarnej','a) żywność oraz materiały przeznaczone do kontaktu z żywnością.','b) ziarno roślin przeznaczone do siewu.','c) wyłącznie żywność.'],
+  ['X100','Zgodnie z obowiązującym rozporządzeniem UE w sprawie transgranicznego przemieszczania odpadów przemieszczanie odpadów może odbywać się','a) procedurze uprzedniego pisemnego zgłoszenia i zgody (poszczególnych państw) lub ogólnego obowiązku informowania.','b) wyłącznie w obrocie z krajami trzecimi na podstawie Pozwoleń wydanych przez Głównego Inspektora Ochrony Środowiska.','c) w obrębie państw członkowskich Unii Europejskiej bez dodatkowych dokumentów.'],
+  ['X010','Kto wydaje pozwolenie na wywóz materiałów bibliotecznych','a) Wojewódzki Konserwator Zabytków.','b) Dyrektor Biblioteki Narodowej.','c) Minister Kultury i Dziedzictwa Narodowego.'],
+  ['X001','Ograniczeniem ustanowionym ze względu na ochronę środowiska jest','a) graniczna kontrola sanitarna.','b) kontrola przywozu produktów ubocznych pochodzenia zwierzęcego.','c) kontrola przywozu substancji zubożających warstwę ozonową.'],
+  ['X001','Przepisy ustawy o broni i amunicji stosuje się do','a) przemieszczania amunicji przez przedsiębiorców oraz przedsiębiorców zagranicznych, w rozumieniu ustawy o materiałach wybuchowych przeznaczonych do użytku cywilnego.','b) broni i amunicji stanowiących uzbrojenie żołnierzy armii państw obcych przebywających na terytorium Polski w związku z przedsięwzięciami wojskowymi realizowanymi wspólnie z Siłami Zbrojnymi Polski, a także na podstawie umów i porozumień międzynarodowych.','c) nabywania, rejestracji, przechowywania, zbywania i deponowania broni i amunicji, przewozu przez terytorium Polski oraz przywozu z zagranicy i wywozu za granicę broni.'],
+  ['X010','Organem monitorującym obrót towarami o znaczeniu strategicznym jest','a) Szef Agencji Wywiadu.','b) Szef Agencji Bezpieczeństwa Wewnętrznego.','c) Minister Gospodarki.'],
+  ['X001','Organem uprawnionym do prowadzenia postępowania karnego w przypadku wykrycia nielegalnego przewozu okazów CITES jest','a) Generalny Dyrektor Ochrony Przyrody.','b) Powiatowy Lekarz Weterynarii.','c) Naczelnik Urzędu Celno-Skarbowego.'],
+  ['X100','Naczelnik urzędu celno-skarbowego przeprowadzi postępowanie przygotowawcze w sprawie wystawienia faktury poświadczającej nieprawdę co do okoliczności faktycznych mogących mieć znaczenie dla określenia wysokości należności publicznoprawnej (art. 271a kk), jeżeli przestępstwo zostało ujawnione przez','a) Służbę Celno-Skarbową.','b) pracownika urzędu.','c) urząd skarbowy.'],
+];
+
+function generate() {
+  const pt3 = g3.map(b => b.join('\n')).join('\n\n');
+  const pt4 = g4.map(b => b.join('\n')).join('\n\n');
+  const enc3 = xorEncrypt(pt3, PW);
+  const enc4 = xorEncrypt(pt4, PW);
+
+  document.getElementById('out3').value = enc3;
+  document.getElementById('out4').value = enc4;
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('status').textContent = '✅ Gotowe! Skopiuj oba stringi i wyślij je do Claude.';
+}
+</script>
+</body>
+</html>
