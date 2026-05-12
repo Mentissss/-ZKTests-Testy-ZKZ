@@ -147,12 +147,12 @@
 
   if (typeof PROTECTED_TESTS !== 'undefined') {
     PROTECTED_TESTS['Grupa_5'] = {
-      title: 'Grupa 5',
+      title: 'Bez weryfikacji 5',
       data: xorEncrypt(pt5, PW),
       timeLimitMin: 60
     };
     PROTECTED_TESTS['Grupa_6'] = {
-      title: 'Grupa 6',
+      title: 'Bez weryfikacji 6',
       data: xorEncrypt(pt6, PW),
       timeLimitMin: 60
     };
