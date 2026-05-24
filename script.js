@@ -441,7 +441,8 @@ function bindGlobalControls() {
             const view = navBtn.dataset.view;
             if (['home','tests','materials','links','qa-fc'].includes(view)) {
                 e.preventDefault();
-                navigate(view);
+                if (view === 'qa-fc') openQAFlashcards();
+                else navigate(view);
                 $('#topnav').classList.remove('is-mobile-open');
             }
         }
@@ -602,13 +603,19 @@ function bindGlobalControls() {
     });
 
     // QA Flashcards
-    $('#qaFcStartBtn').addEventListener('click', startQAFlashcards);
+    $('#qaFcStartBtn')?.addEventListener('click', startQAFlashcards);
     $('#qaFcRestartBtn').addEventListener('click', startQAFlashcards);
     $('#qaFlashcard').addEventListener('click', flipQAFlashcard);
     $('#qaFlashcard').addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') flipQAFlashcard(); });
     $('#qaFcYes').addEventListener('click', () => rateQAFlashcard(true));
     $('#qaFcNo').addEventListener('click', () => rateQAFlashcard(false));
     $('#qaFcDbSelect').addEventListener('change', startQAFlashcards);
+    $('#qaFcDbChoices').addEventListener('click', e => {
+        const card = e.target.closest('[data-choice-value]');
+        if (!card) return;
+        $('#qaFcDbSelect').value = card.dataset.choiceValue;
+        startQAFlashcards();
+    });
 
     // Oral simulator
     $('#oralRevealBtn').addEventListener('click', oralReveal);
@@ -618,6 +625,28 @@ function bindGlobalControls() {
     $('#oralTimerSelect').addEventListener('change', oralReset);
     $('#oralDbSelect').addEventListener('change', () => { populateOralTopics(); startOralSim(); });
     $('#oralTopicSelect').addEventListener('change', startOralSim);
+    $('#oralDbChoices').addEventListener('click', e => {
+        const card = e.target.closest('[data-choice-value]');
+        if (!card) return;
+        $('#oralDbSelect').value = card.dataset.choiceValue;
+        syncChoiceSelection('#oralDbChoices', card.dataset.choiceValue);
+        populateOralTopics();
+        startOralSim();
+    });
+    $('#oralTopicChoices').addEventListener('click', e => {
+        const card = e.target.closest('[data-choice-value]');
+        if (!card) return;
+        $('#oralTopicSelect').value = card.dataset.choiceValue;
+        syncChoiceSelection('#oralTopicChoices', card.dataset.choiceValue);
+        startOralSim();
+    });
+    $('#oralTimerChoices').addEventListener('click', e => {
+        const card = e.target.closest('[data-choice-value]');
+        if (!card) return;
+        $('#oralTimerSelect').value = card.dataset.choiceValue;
+        syncChoiceSelection('#oralTimerChoices', card.dataset.choiceValue);
+        oralReset();
+    });
     $('#oralResumeBtn').addEventListener('click', resumeOralSession);
     $('#oralDiscardBtn').addEventListener('click', () => {
         if (!confirm('Usunąć zapisaną sesję ustnego?')) return;
@@ -626,20 +655,10 @@ function bindGlobalControls() {
         toast('Zapisana sesja usunięta');
     });
 
-    // Protected tests
+    // Group tests
     document.addEventListener('click', e => {
         const btn = e.target.closest('[data-protected-key]');
         if (btn) openProtectedTest(btn.dataset.protectedKey);
-    });
-    $('#passwordSubmit').addEventListener('click', submitProtectedPassword);
-    $('#passwordInput').addEventListener('keydown', e => {
-        if (e.key === 'Enter') submitProtectedPassword();
-    });
-    document.querySelectorAll('#passwordModal [data-close-modal]').forEach(el => {
-        el.addEventListener('click', () => {
-            $('#passwordModal').classList.add('hidden');
-            _pendingProtectedKey = null;
-        });
     });
 
     // Dialog
@@ -675,6 +694,7 @@ function navigate(view) {
 function handleHashRoute() {
     const v = (location.hash || '').replace('#', '');
     if (['home','tests','materials','links'].includes(v)) navigate(v);
+    if (v === 'qa-fc') openQAFlashcards();
 }
 
 // ── Data load ──────────────────────────────────────────────
@@ -2117,19 +2137,19 @@ function questionNorm(q) {
 
 
 // ═══════════════════════════════════════════════════════════════════
-// PROTECTED TESTS (XOR encrypted, password-gated)
+// GROUP TESTS (stored encrypted, opened directly)
 // ═══════════════════════════════════════════════════════════════════
 
-let _pendingProtectedKey = null;
+const GROUP_TEST_DATA_KEY = '!@Testy1209@!';
 
-function xorDecrypt(b64, password) {
+function xorDecrypt(b64, key) {
     // Decode base64 → raw bytes
     const binaryStr = atob(b64);
     const len = binaryStr.length;
     const encBytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) encBytes[i] = binaryStr.charCodeAt(i) & 0xff;
-    // Key bytes via TextEncoder – matches Python's password.encode('utf-8') exactly
-    const keyBytes = new TextEncoder().encode(password);
+    // Key bytes via TextEncoder match Python's UTF-8 encoding exactly.
+    const keyBytes = new TextEncoder().encode(key);
     const keyLen = keyBytes.length;
     // XOR decrypt
     const outBytes = new Uint8Array(len);
@@ -2166,37 +2186,25 @@ function openProtectedTest(groupKey) {
         showError('Brak danych dla tego testu.');
         return;
     }
-    _pendingProtectedKey = groupKey;
-    $('#passwordModalTitle').textContent = `Hasło do: ${PROTECTED_TESTS[groupKey].title}`;
-    $('#passwordInput').value = '';
-    $('#passwordError').classList.add('hidden');
-    $('#passwordModal').classList.remove('hidden');
-    setTimeout(() => $('#passwordInput').focus(), 80);
+    launchProtectedTest(groupKey);
 }
 
-function submitProtectedPassword() {
-    const pw = $('#passwordInput').value;
-    const groupKey = _pendingProtectedKey;
-    if (!groupKey || !pw) return;
+function launchProtectedTest(groupKey) {
     const entry = PROTECTED_TESTS[groupKey];
     let plaintext;
     try {
-        plaintext = xorDecrypt(entry.data, pw);
+        plaintext = xorDecrypt(entry.data, GROUP_TEST_DATA_KEY);
         // Quick sanity check: should start with X
         if (!plaintext.trimStart().startsWith('X')) throw new Error('bad');
     } catch (e) {
-        $('#passwordError').classList.remove('hidden');
-        $('#passwordInput').select();
+        showError('Nie udało się uruchomić testu grupowego.');
         return;
     }
     const questions = parseProtectedQuestions(plaintext);
     if (!questions.length) {
-        $('#passwordError').classList.remove('hidden');
+        showError('Brak pytań w tym teście grupowym.');
         return;
     }
-    // Close modal
-    $('#passwordModal').classList.add('hidden');
-    _pendingProtectedKey = null;
 
     // Launch as mock exam (reuses timer + 60q infrastructure)
     clearMockSession();
@@ -2593,23 +2601,115 @@ function renderHeatmap() {
 }
 
 /* ──────────────────────────────────────────────────────────
+   STUDY SETUP PICKERS
+   ────────────────────────────────────────────────────────── */
+function formatQuestionCount(count) {
+    const n = Number(count) || 0;
+    const mod10 = n % 10;
+    const mod100 = n % 100;
+    if (n === 1) return '1 pytanie';
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} pytania`;
+    return `${n} pytań`;
+}
+
+function getQAItems(db) {
+    if (db === 'all') {
+        return [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe];
+    }
+    return QA_DATABASES[db] || [];
+}
+
+function getOralDatabaseCount(db) {
+    if (db === 'default') {
+        return ORAL_TOPICS.length + MATERIALS.reduce((sum, material) => {
+            return sum + (loadTrainerData(material.id) || []).length;
+        }, 0);
+    }
+    return getQAItems(db).length;
+}
+
+function syncChoiceSelection(gridSelector, value) {
+    $$(gridSelector ? `${gridSelector} [data-choice-value]` : '[data-choice-value]').forEach(card => {
+        const active = card.dataset.choiceValue === value;
+        card.classList.toggle('is-active', active);
+        card.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+function updateChoiceCardMeta(gridSelector, countGetter) {
+    $$(gridSelector + ' [data-choice-value]').forEach(card => {
+        const meta = $('[data-choice-meta]', card);
+        if (!meta) return;
+        meta.textContent = formatQuestionCount(countGetter(card.dataset.choiceValue));
+    });
+}
+
+function updateQAChoiceCards() {
+    updateChoiceCardMeta('#qaFcDbChoices', db => getQAItems(db).length);
+    syncChoiceSelection('#qaFcDbChoices', $('#qaFcDbSelect').value || 'ustne');
+}
+
+function updateOralChoiceCards() {
+    updateChoiceCardMeta('#oralDbChoices', getOralDatabaseCount);
+    syncChoiceSelection('#oralDbChoices', $('#oralDbSelect').value || 'default');
+    syncChoiceSelection('#oralTimerChoices', $('#oralTimerSelect').value || '60');
+}
+
+function renderOralTopicChoices(entries) {
+    const grid = $('#oralTopicChoices');
+    if (!grid) return;
+    const selected = ($('#oralTopicSelect') || {}).value || 'all';
+    grid.innerHTML = '';
+
+    entries.forEach(entry => {
+        const card = document.createElement('button');
+        card.className = 'choice-card choice-card--topic';
+        card.type = 'button';
+        card.dataset.choiceValue = entry.value;
+        card.setAttribute('aria-pressed', entry.value === selected ? 'true' : 'false');
+        if (entry.value === selected) card.classList.add('is-active');
+
+        const title = document.createElement('span');
+        title.className = 'choice-card__title';
+        title.textContent = entry.title;
+
+        const meta = document.createElement('span');
+        meta.className = 'choice-card__meta';
+        meta.textContent = formatQuestionCount(entry.count);
+
+        card.append(title, meta);
+        grid.appendChild(card);
+    });
+}
+
+/* ──────────────────────────────────────────────────────────
    ORAL SIMULATOR
    ────────────────────────────────────────────────────────── */
 function populateOralTopics() {
     const db = ($('#oralDbSelect') || {}).value || 'default';
     let topics = [];
+    const topicCounts = new Map();
 
     if (db === 'default') {
         // For default pool: group by source (material title or 'baza tematów')
         topics.push('baza tematów');
+        topicCounts.set('baza tematów', ORAL_TOPICS.length);
         MATERIALS.forEach(m => {
-            if ((loadTrainerData(m.id) || []).length > 0) topics.push(m.title);
+            const trainerItems = loadTrainerData(m.id) || [];
+            if (trainerItems.length > 0) {
+                topics.push(m.title);
+                topicCounts.set(m.title, trainerItems.length);
+            }
         });
     } else {
         const items = db === 'all'
             ? [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe]
             : (QA_DATABASES[db] || []);
-        topics = [...new Set(items.map(it => it.topic || it.db))].sort();
+        items.forEach(it => {
+            const topic = it.topic || it.db;
+            topicCounts.set(topic, (topicCounts.get(topic) || 0) + 1);
+        });
+        topics = [...topicCounts.keys()].sort();
     }
 
     const sel = $('#oralTopicSelect');
@@ -2622,9 +2722,14 @@ function populateOralTopics() {
     topics.forEach(t => {
         const opt = document.createElement('option');
         opt.value = t;
-        opt.textContent = t;
+        opt.textContent = `${t} (${topicCounts.get(t) || 0})`;
         sel.appendChild(opt);
     });
+    renderOralTopicChoices([
+        { value: 'all', title: 'Wszystkie tematy', count: total },
+        ...topics.map(t => ({ value: t, title: t, count: topicCounts.get(t) || 0 }))
+    ]);
+    updateOralChoiceCards();
 }
 
 function buildOralPool() {
@@ -2702,6 +2807,7 @@ function resumeOralSession() {
     state.oral.index = 0;
     state.oral.revealed = false;
     if (saved.timerSelect) $('#oralTimerSelect').value = saved.timerSelect;
+    updateOralChoiceCards();
     $('#oralResumeBanner').classList.add('hidden');
     $('#oralBody').classList.remove('hidden');
     $('#oralEmpty').classList.add('hidden');
@@ -2712,6 +2818,7 @@ function startOralSim() {
     stopOralTimer();
     clearOralSession();
     $('#oralResumeBanner').classList.add('hidden');
+    updateOralChoiceCards();
     let pool = buildOralPool();
     // Apply topic filter
     const topicSel = ($('#oralTopicSelect') || {}).value || 'all';
@@ -2844,14 +2951,15 @@ function oralReset() {
 /* ──────────────────────────────────────────────────────────
    QA FLASHCARDS (Ustne / Opisowe / Testowe zamknięte)
    ────────────────────────────────────────────────────────── */
+function openQAFlashcards() {
+    navigate('qa-fc');
+    updateQAChoiceCards();
+    if (!state.qafc.deck || state.qafc.deck.length === 0) startQAFlashcards();
+}
+
 function startQAFlashcards() {
     const db = $('#qaFcDbSelect').value;
-    let items = [];
-    if (db === 'all') {
-        items = [...QA_DATABASES.ustne, ...QA_DATABASES.opisowe, ...QA_DATABASES.testowe];
-    } else {
-        items = QA_DATABASES[db] || [];
-    }
+    let items = getQAItems(db);
 
     state.qafc.deck = shuffleArray([...items]).map(it => ({ it, status: 'pending' }));
     state.qafc.index = 0;
@@ -2863,6 +2971,7 @@ function startQAFlashcards() {
     const labels = { ustne: 'Ustne', opisowe: 'Opisowe', testowe: 'Testowe zamknięte', all: 'Wszystkie bazy' };
     $('#qaFcTitle').textContent = labels[db] || 'Fiszki baz';
     $('#qaFcBody').classList.remove('hidden');
+    updateQAChoiceCards();
 
     nextQAFlashcard();
 }

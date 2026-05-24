@@ -1,9 +1,9 @@
-// Protected group tests - extra (Grupa 5 & 6)
-// Encrypted at runtime with the same password as Grupa 1-4
+// Group tests - extra (Grupa 5 & 6)
+// Encoded at runtime with the same key as Grupa 1-4
 (function(){
-  function xorEncrypt(text, password) {
+  function xorEncrypt(text, key) {
     const textBytes = new TextEncoder().encode(text);
-    const keyBytes  = new TextEncoder().encode(password);
+    const keyBytes  = new TextEncoder().encode(key);
     const enc = new Uint8Array(textBytes.length);
     for (let i = 0; i < textBytes.length; i++)
       enc[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
@@ -12,7 +12,7 @@
     return btoa(bin);
   }
 
-  const PW = '!@Testy1209@!';
+  const GROUP_TEST_DATA_KEY = '!@Testy1209@!';
 
   // ── GRUPA 5 (Bez_weryfikacji_1) ────────────────────────────────────────
   const g5 = [
@@ -148,12 +148,12 @@
   if (typeof PROTECTED_TESTS !== 'undefined') {
     PROTECTED_TESTS['Grupa_5'] = {
       title: 'Bez weryfikacji 5',
-      data: xorEncrypt(pt5, PW),
+      data: xorEncrypt(pt5, GROUP_TEST_DATA_KEY),
       timeLimitMin: 60
     };
     PROTECTED_TESTS['Grupa_6'] = {
       title: 'Bez weryfikacji 6',
-      data: xorEncrypt(pt6, PW),
+      data: xorEncrypt(pt6, GROUP_TEST_DATA_KEY),
       timeLimitMin: 60
     };
   }
